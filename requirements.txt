@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+PyMySQL
+SQLAlchemy # If you plan to use an ORM

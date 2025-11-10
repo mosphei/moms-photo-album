@@ -1,0 +1,41 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:80"
+    volumes:
+      - ./app:/app
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_NAME: fastapi_db
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+
+  db:
+    image: mysql:8.0
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: fastapi_db
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+    ports:
+      - "3306:3306"
+
+  adminer:
+    image: adminer:latest
+    restart: always
+    ports:
+      - "8080:8080" # Maps host port 8080 to container port 8080
+    depends_on:
+      - db
+    environment:
+      ADMINER_DEFAULT_SERVER: db # Use the service name of the database container
+      ADMINER_DESIGN: "nette" # Optional: Change the theme
+
+volumes:
+  db_data:
+  api:
