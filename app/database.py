@@ -1,7 +1,8 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
+#from sqlalchemy.ext.declarative import declarative_base
+from models import Base
 
 
 # Database connection details using environment variables
@@ -13,12 +14,12 @@ DB_PORT = 3306        # Default MySQL port
 
 # 2. Construct the database URL using the 'mysql+pymysql' format
 # The 'charset=utf8mb4' part is often recommended for full character support
-SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
+DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
 
 # 3. Create the SQLAlchemy engine
 # The pool_pre_ping=True helps maintain healthy connections in a web application setting
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, 
+    DATABASE_URL, 
     pool_pre_ping=True # Optional, helps manage connections
 )
 
@@ -26,7 +27,7 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # 5. Define the Base for your models (this can also be in models.py)
-Base = declarative_base()
+
 
 # 6. Dependency to get the database session (used in FastAPI endpoints)
 def get_db():
