@@ -41,7 +41,7 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         f.write(await file.read())
     
     # Save image metadata in MySQL database
-    db_image = Image(filename=file.filename, filepath=file_location)
+    db_image = Image(file_path=file_location)
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
@@ -59,8 +59,7 @@ async def get_image(image_id: int, db: Session = Depends(get_db)):
 # Retrieve image file endpoint
 @app.get("/files/{image_id}")
 async def get_image_file(image_id: int, db: Session = Depends(get_db)):
-    image = db.query(Image).filter(Image.id == image_id).first()
-    if not image:
+    imagepath = db.query(Image.file_path).filter(Image.id == image_id).first()
+    if not imagepath:
         raise HTTPException(status_code=404, detail="Image not found")
-    
-    return FileResponse(image.filepath)
+    return FileResponse(imagepath[0])

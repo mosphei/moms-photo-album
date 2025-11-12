@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, ForeignKey, Table, Text
 from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
@@ -15,7 +15,7 @@ image_person_association = Table(
 class Person(Base):
     __tablename__ = 'people'
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
+    name = Column(String(255), index=True)
     # Establishes the link to the Image model via the association table
     images = relationship("Image", secondary=image_person_association, back_populates="people")
 
@@ -23,7 +23,7 @@ class Image(Base):
     __tablename__ = 'images'
     id = Column(Integer, primary_key=True, index=True)
     # We typically store the image file path/URL, not the image data itself, in the DB
-    file_path = Column(String, nullable=False)
-    description = Column(String, nullable=True)
+    file_path = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
     # Establishes the link to the Person model via the association table
     people = relationship("Person", secondary=image_person_association, back_populates="images")
