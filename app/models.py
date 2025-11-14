@@ -27,3 +27,10 @@ class Image(Base):
     description = Column(Text, nullable=True)
     # Establishes the link to the Person model via the association table
     people = relationship("Person", secondary=image_person_association, back_populates="images")
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    username = Column(String(255), unique=True, index=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    Column('person_id', Integer, ForeignKey('people.id'), primary_key=True)

@@ -30,3 +30,20 @@ class ImageCreate(BaseModel):
     file_path: str
     description: Optional[str] = None
     person_ids: List[int] = []
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    person: PersonSchema
+
+class UserSchema(BaseModel):
+    id: int 
+    username: str
+    person: PersonSchema
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: str | None = None

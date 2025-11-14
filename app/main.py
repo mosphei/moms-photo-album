@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from .database import create_all_tables, get_db
 from models import Base, Image
 from schemas import ImageCreate, ImageSchema
-from .routers import images
+from .routers import images, users
 
 create_all_tables()
 
@@ -14,6 +14,7 @@ create_all_tables()
 app = FastAPI()
 
 app.include_router(images.router)
+app.include_router(users.router)
 
 @app.get("/cwd")
 def read_cwd():

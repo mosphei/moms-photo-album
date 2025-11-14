@@ -4,7 +4,6 @@ from sqlalchemy.orm import sessionmaker
 #from sqlalchemy.ext.declarative import declarative_base
 from models import Base
 
-
 # Database connection details using environment variables
 DB_HOST = os.getenv("DB_HOST",'db') # The service name defined in docker-compose.yml
 DB_NAME = os.getenv("DB_NAME",'fastapi_db')

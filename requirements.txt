@@ -4,3 +4,5 @@ PyMySQL
 SQLAlchemy
 cryptography
 python-multipart
+pyjwt
+passlib

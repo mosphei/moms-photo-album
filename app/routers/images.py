@@ -12,6 +12,7 @@ router = APIRouter(
     tags=["images"],   # Groups these routes in the API docs (Swagger UI)
 )
 
+MEDIADIR = "/media"
 
 # Upload image endpoint
 @router.post("/upload/", response_model=ImageSchema)
@@ -30,9 +31,6 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
     db.commit()
     db.refresh(db_image)
     return db_image
-
-
-
 
 # Retrieve image metadata endpoint
 @router.get("/{image_id}", response_model=ImageSchema)
