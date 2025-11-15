@@ -5,4 +5,4 @@ SQLAlchemy
 cryptography
 python-multipart
 pyjwt
-passlib
+pwdlib[argon2]

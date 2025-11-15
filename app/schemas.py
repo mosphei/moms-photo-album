@@ -36,6 +36,11 @@ class UserCreate(BaseModel):
     password: str
     person: PersonSchema
 
+class UserAuthenticate(BaseModel):
+    username: str
+    password: str
+    hashed_password: str
+
 class UserSchema(BaseModel):
     id: int 
     username: str

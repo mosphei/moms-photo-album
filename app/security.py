@@ -8,7 +8,7 @@ from jwt import PyJWTError # Import the specific error class
 from database import get_db
 from sqlalchemy.orm import Session
 from models import User
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
 
 # Secret key and algorithm for JWT (change these in a real application)
 SECRET_KEY = "your-very-secure-and-long-secret-key"
@@ -16,6 +16,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token")
+password_hash = PasswordHash.recommended()
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -50,11 +51,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def hash_password(password: str):
-    return pwd_context.hash(password)
+    return password_hash.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password, hashed_password)
+    return password_hash.verify(plain_password, hashed_password)
 
