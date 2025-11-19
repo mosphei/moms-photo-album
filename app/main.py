@@ -16,6 +16,6 @@ app = FastAPI()
 app.include_router(images.router)
 app.include_router(users.router)
 
-@app.get("/cwd")
+@app.get("/api/cwd")
 def read_cwd():
     return os.getcwd()

@@ -8,7 +8,7 @@ from ..security import create_access_token, get_current_user, hash_password, ver
 from ..schemas import UserCreate, Token
 
 router = APIRouter(
-    prefix="/users",  # Sets the base path for all routes in this file
+    prefix="/api/users",  # Sets the base path for all routes in this file
     tags=["users"],   # Groups these routes in the API docs (Swagger UI)
 )
 
