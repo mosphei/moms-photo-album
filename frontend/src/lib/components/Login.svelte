@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { me } from '$lib/stores/me-store';
+
 	let form: HTMLFormElement;
 	let username = $state('');
 	let password = $state('');
@@ -20,6 +22,8 @@
 			}
 			const result = await response.json();
 			console.log(`got result`, result);
+			localStorage.setItem('access_token', result.access_token);
+			me.refresh();
 		} catch (err) {
 			console.log(`got err`, err);
 			alert(err);
@@ -32,14 +36,20 @@
 	<input type="hidden" name="scope" value="" />
 	<input type="hidden" name="client_id" value="" />
 	<input type="hidden" name="client_secret" value="" />
-	<input
-		type="text"
-		id="username"
-		name="username"
-		autocomplete="off"
-		bind:value={username}
-		required
-	/>
-	<input type="password" id="password" name="password" bind:value={password} required />
+	<div>
+		<label for="username">Username:</label>
+		<input
+			type="text"
+			id="username"
+			name="username"
+			autocomplete="off"
+			bind:value={username}
+			required
+		/>
+	</div>
+	<div>
+		<label for="password">Password:</label>
+		<input type="password" id="password" name="password" bind:value={password} required />
+	</div>
 	<button>Submit</button>
 </form>
