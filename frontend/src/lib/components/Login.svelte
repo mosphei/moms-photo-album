@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { me } from '$lib/stores/me-store';
+	import { session, type TokenResponse } from '$lib/stores/session-store';
 
 	let form: HTMLFormElement;
 	let username = $state('');
@@ -12,7 +13,7 @@
 		const formData = new FormData(form);
 		console.log(formData);
 		try {
-			const response = await fetch(form.action, {
+			const response = await fetch('/api/users/token', {
 				method: 'POST',
 				body: formData
 			});
@@ -20,9 +21,9 @@
 				const result = await response.text();
 				throw new Error(result);
 			}
-			const result = await response.json();
+			const result:TokenResponse = await response.json();
 			console.log(`got result`, result);
-			localStorage.setItem('access_token', result.access_token);
+			session.setToken(result);
 			me.refresh();
 		} catch (err) {
 			console.log(`got err`, err);
@@ -34,7 +35,7 @@
 <div class="card">
 	<div class="card-body">
 		<h3 class="card-title">Log in</h3>
-		<form bind:this={form} action="/api/users/token" method="POST" onsubmit={handleSubmit}>
+		<form bind:this={form} onsubmit={handleSubmit}>
 			<input type="hidden" name="grant_type" value="password" />
 			<input type="hidden" name="scope" value="" />
 			<input type="hidden" name="client_id" value="" />

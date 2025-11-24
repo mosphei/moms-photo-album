@@ -4,8 +4,10 @@
 	import Login from '$lib/components/Login.svelte';
 	import { me } from '$lib/stores/me-store';
 	import Nav from '$lib/components/nav/Nav.svelte';
+	import { session } from '$lib/stores/session-store';
 
 	let { children } = $props();
+	const loggedIn = session.loggedIn;
 
 	function handleTest() {
 		const token: string = localStorage.access_token || '';
@@ -27,22 +29,14 @@
 <Nav />
 
 <div style="padding:1%">
-	{#if $me}
+	{#if $loggedIn}
 		{@render children?.()}
-	{:else}
+	{:else if $loggedIn === false}
 		<Login />
+	{:else} 
+		<div>Please wait...</div>
 	{/if}
 </div>
-<DebugPanel value={{ a: true }}>
+<DebugPanel value={{ xloggedIn:$loggedIn }}>
 	<button onclick={handleTest}>Test Auth</button>
 </DebugPanel>
-
-<style>
-	nav {
-		display: flex;
-		align-items: baseline;
-	}
-	nav a {
-		padding: 1em 0.25em;
-	}
-</style>

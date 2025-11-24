@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { me } from '$lib/stores/me-store';
 	import NavDropdown from './NavDropdown.svelte';
 </script>
 
@@ -38,6 +39,10 @@
 				<input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
 				<button class="btn btn-outline-success" type="submit">Search</button>
 			</form>
+			{#if $me}
+				<NavDropdown text={$me.username} links={[]} />
+
+			{/if}
 		</div>
 	</div>
 </nav>

@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
-import { type Readable, writable } from 'svelte/store';
+import { get, type Readable, writable } from 'svelte/store';
+import { session, type TokenResponse } from './session-store';
 
 export async function fetchApi(url: string, opts = {}) {
 	const fetchOpts = {
@@ -26,18 +27,22 @@ export function createFetcher<T>(
 ): () => Promise<T | undefined> {
 	return async () => {
 		if (browser) {
-			const token: string = localStorage.access_token || '';
+			const token = get(session.token);
 			const fetchOpts = {
-				...(opts || {}),
 				method: 'GET',
 				headers: {
-					Authorization: `Bearer ${token}`
-				}
+					Authorization: token? `${token.token_type} ${token.access_token}`: undefined,
+				},
+				...(opts || {})
 			};
+			console.log('fetchOpts', fetchOpts);
 			const response = await fetch(url, fetchOpts);
 			if (!response.ok) {
+				if (response.status === 401) {
+					session.clearToken();
+				}
 				const result = await response.text();
-				console.log('Error getting data: ', result);
+				console.log('Error getting data: ', result, response);
 				throw result;
 			}
 			const txt = await response.text();
