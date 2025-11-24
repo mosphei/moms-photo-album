@@ -21,7 +21,7 @@
 				const result = await response.text();
 				throw new Error(result);
 			}
-			const result:TokenResponse = await response.json();
+			const result: TokenResponse = await response.json();
 			console.log(`got result`, result);
 			session.setToken(result);
 			me.refresh();

@@ -1,9 +1,11 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+
 	interface IProps {
 		text: string;
-		links: ({ text: string; href: string } | 'divider')[];
+		children: Snippet;
 	}
-	let { text, links }: IProps = $props();
+	let { text, children }: IProps = $props();
 	let menu: HTMLUListElement;
 	let show = $state(false);
 	function toggleShow() {
@@ -32,14 +34,6 @@
 		{text}
 	</button>
 	<ul class="dropdown-menu" bind:this={menu} style="display: {show ? 'block' : 'none'};">
-		{#each links as link}
-			<li>
-				{#if link === 'divider'}
-					<hr class="dropdown-divider" />
-				{:else}
-					<a class="dropdown-item" href={link.href}>{link.text}</a>
-				{/if}
-			</li>
-		{/each}
+		{@render children()}
 	</ul>
 </li>

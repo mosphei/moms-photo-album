@@ -33,10 +33,10 @@
 		{@render children?.()}
 	{:else if $loggedIn === false}
 		<Login />
-	{:else} 
+	{:else}
 		<div>Please wait...</div>
 	{/if}
 </div>
-<DebugPanel value={{ xloggedIn:$loggedIn }}>
+<DebugPanel value={{ xloggedIn: $loggedIn }}>
 	<button onclick={handleTest}>Test Auth</button>
 </DebugPanel>

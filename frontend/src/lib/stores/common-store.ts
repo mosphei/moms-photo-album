@@ -31,7 +31,7 @@ export function createFetcher<T>(
 			const fetchOpts = {
 				method: 'GET',
 				headers: {
-					Authorization: token? `${token.token_type} ${token.access_token}`: undefined,
+					Authorization: token ? `${token.token_type} ${token.access_token}` : undefined
 				},
 				...(opts || {})
 			};
