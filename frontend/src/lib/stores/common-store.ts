@@ -3,21 +3,29 @@ import { get, type Readable, writable } from 'svelte/store';
 import { session, type TokenResponse } from './session-store';
 
 export async function fetchApi(url: string, opts = {}) {
-	const fetchOpts = {
-		...(opts || {}),
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
+	if (browser) {
+		const token = get(session.token);
+		const fetchOpts = {
+			method: 'GET',
+			headers: {
+				Authorization: token ? `${token.token_type} ${token.access_token}` : 'undefined'
+			},
+			...(opts || {})
+		};
+		console.log('fetchOpts', fetchOpts);
+		const response = await fetch(url, fetchOpts);
+		if (!response.ok) {
+			if (response.status === 401) {
+				session.clearToken();
+			}
+			const result = await response.text();
+			console.log('Error getting data: ', result, response);
+			throw result;
 		}
-	};
-	const response = await fetch(url, fetchOpts);
-	if (!response.ok) {
-		const result = await response.text();
-		console.log('Error getting data: ', result);
-		throw result;
+		const txt = await response.text();
+		return txt;
 	}
-	const txt = await response.text();
-	return txt;
+	//return 'undefined';
 }
 
 export function createFetcher<T>(
@@ -26,26 +34,8 @@ export function createFetcher<T>(
 	callback: (response: string) => T
 ): () => Promise<T | undefined> {
 	return async () => {
-		if (browser) {
-			const token = get(session.token);
-			const fetchOpts = {
-				method: 'GET',
-				headers: {
-					Authorization: token ? `${token.token_type} ${token.access_token}` : undefined
-				},
-				...(opts || {})
-			};
-			console.log('fetchOpts', fetchOpts);
-			const response = await fetch(url, fetchOpts);
-			if (!response.ok) {
-				if (response.status === 401) {
-					session.clearToken();
-				}
-				const result = await response.text();
-				console.log('Error getting data: ', result, response);
-				throw result;
-			}
-			const txt = await response.text();
+		const txt = await fetchApi(url, opts);
+		if (txt) {
 			const x = callback(txt);
 			return x;
 		}

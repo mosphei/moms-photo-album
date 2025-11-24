@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { beforeNavigate } from '$app/navigation';
+	import { clickOutside } from '$lib/click-outside';
 	import { me } from '$lib/stores/me-store';
 	import { session } from '$lib/stores/session-store';
 	import NavDropdown from './NavDropdown.svelte';
@@ -6,9 +8,18 @@
 	function handleLogout(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
 		session.clearToken();
 	}
+
+	let show = $state(false);
+
+	function handleOutsideClick() {
+		show = false;
+	}
+	beforeNavigate((navigation) => {
+		show = false;
+	});
 </script>
 
-<nav class="navbar navbar-expand-lg bg-body-tertiary">
+<nav class="navbar navbar-expand-lg bg-body-tertiary" use:clickOutside={handleOutsideClick}>
 	<div class="container-fluid">
 		<a class="navbar-brand" href="/">Photos</a>
 		<button
@@ -19,26 +30,28 @@
 			aria-controls="navbarSupportedContent"
 			aria-expanded="false"
 			aria-label="Toggle navigation"
+			onclick={() => (show = !show)}
 		>
+			{show}
 			<span class="navbar-toggler-icon"></span>
 		</button>
-		<div class="collapse navbar-collapse" id="navbarSupportedContent">
+		<div class="collapse navbar-collapse" class:show id="navbarSupportedContent">
 			<ul class="navbar-nav me-auto mb-2 mb-lg-0">
 				<li class="nav-item">
 					<a class="nav-link" aria-current="page" href="/">Home</a>
 				</li>
+				<!--
 				<NavDropdown text="Dropdown">
-					<li>
-						<a class="dropdown-item" href="/xxx">X</a>
-						<a class="dropdown-item" href="/xxx">X</a>
-						<a class="dropdown-item" href="/xxx">X</a>
-						<hr class="dropdown-divider" />
-						<a class="dropdown-item" href="/xxx">X</a>
-					</li>
+					<a class="dropdown-item" href="/xxx">X</a>
+					<a class="dropdown-item" href="/xxx">X</a>
+					<a class="dropdown-item" href="/xxx">X</a>
+					<hr class="dropdown-divider" />
+					<a class="dropdown-item" href="/xxx">X</a>
 				</NavDropdown>
 				<li class="nav-item">
 					<a class="nav-link disabled" aria-disabled="true">Disabled</a>
-				</li>
+				</li> 
+				-->
 			</ul>
 			<form class="d-flex me-2" role="search">
 				<input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
@@ -47,9 +60,7 @@
 			{#if $me}
 				<ul class="navbar-nav mb-2 mb-lg-0">
 					<NavDropdown text={$me.username}>
-						<li>
-							<button class="dropdown-item" onclick={handleLogout}> Log Out </button>
-						</li>
+						<button class="dropdown-item" onclick={handleLogout}> Log Out </button>
 					</NavDropdown>
 				</ul>
 			{/if}

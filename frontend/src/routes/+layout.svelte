@@ -2,27 +2,16 @@
 	import '../app.scss';
 	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import Login from '$lib/components/Login.svelte';
-	import { me } from '$lib/stores/me-store';
 	import Nav from '$lib/components/nav/Nav.svelte';
 	import { session } from '$lib/stores/session-store';
+	import { fetchApi } from '$lib/stores/common-store';
 
 	let { children } = $props();
 	const loggedIn = session.loggedIn;
 
-	function handleTest() {
-		const token: string = localStorage.access_token || '';
-
-		fetch('/api/users/me', {
-			headers: {
-				Authorization: `Bearer ${token}`
-			}
-		})
-			.then((r) => r.text())
-			.then((r) => alert(r))
-			.catch((err) => {
-				console.log('error getting user details', err);
-				alert('err');
-			});
+	async function handleTest() {
+		const txt = await fetchApi('/api/users/me');
+		alert(txt);
 	}
 </script>
 
@@ -38,5 +27,5 @@
 	{/if}
 </div>
 <DebugPanel value={{ xloggedIn: $loggedIn }}>
-	<button onclick={handleTest}>Test Auth</button>
+	<button class="btn btn-light" onclick={handleTest}>Test Auth</button>
 </DebugPanel>

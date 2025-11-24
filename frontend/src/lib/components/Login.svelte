@@ -63,7 +63,7 @@
 					class="form-control"
 				/>
 			</div>
-			<button>Submit</button>
+			<button class="btn btn-primary">Submit</button>
 		</form>
 	</div>
 </div>
