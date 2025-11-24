@@ -31,25 +31,38 @@
 	}
 </script>
 
-<form bind:this={form} action="/api/users/token" method="POST" onsubmit={handleSubmit}>
-	<input type="hidden" name="grant_type" value="password" />
-	<input type="hidden" name="scope" value="" />
-	<input type="hidden" name="client_id" value="" />
-	<input type="hidden" name="client_secret" value="" />
-	<div>
-		<label for="username">Username:</label>
-		<input
-			type="text"
-			id="username"
-			name="username"
-			autocomplete="off"
-			bind:value={username}
-			required
-		/>
+<div class="card">
+	<div class="card-body">
+		<h3 class="card-title">Log in</h3>
+		<form bind:this={form} action="/api/users/token" method="POST" onsubmit={handleSubmit}>
+			<input type="hidden" name="grant_type" value="password" />
+			<input type="hidden" name="scope" value="" />
+			<input type="hidden" name="client_id" value="" />
+			<input type="hidden" name="client_secret" value="" />
+			<div class="mb-3">
+				<label for="username">Username:</label>
+				<input
+					type="text"
+					id="username"
+					name="username"
+					autocomplete="off"
+					bind:value={username}
+					required
+					class="form-control"
+				/>
+			</div>
+			<div class="mb-3">
+				<label for="password">Password:</label>
+				<input
+					type="password"
+					id="password"
+					name="password"
+					bind:value={password}
+					required
+					class="form-control"
+				/>
+			</div>
+			<button>Submit</button>
+		</form>
 	</div>
-	<div>
-		<label for="password">Password:</label>
-		<input type="password" id="password" name="password" bind:value={password} required />
-	</div>
-	<button>Submit</button>
-</form>
+</div>

@@ -1,7 +1,9 @@
 <script lang="ts">
+	import '../app.scss';
 	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import Login from '$lib/components/Login.svelte';
 	import { me } from '$lib/stores/me-store';
+	import Nav from '$lib/components/nav/Nav.svelte';
 
 	let { children } = $props();
 
@@ -22,17 +24,25 @@
 	}
 </script>
 
-<nav>
-	<h1>Moms Photo Album</h1>
-	<a href="/">Browse</a>
-	<a href="/upload">Upload</a>
-</nav>
-{#if $me}
-	{@render children?.()}
-{:else}
-	<Login />
-{/if}
+<Nav />
 
+<div style="padding:1%">
+	{#if $me}
+		{@render children?.()}
+	{:else}
+		<Login />
+	{/if}
+</div>
 <DebugPanel value={{ a: true }}>
 	<button onclick={handleTest}>Test Auth</button>
 </DebugPanel>
+
+<style>
+	nav {
+		display: flex;
+		align-items: baseline;
+	}
+	nav a {
+		padding: 1em 0.25em;
+	}
+</style>
