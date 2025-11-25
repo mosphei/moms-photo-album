@@ -26,6 +26,8 @@
 		<div>Please wait...</div>
 	{/if}
 </div>
+<!--
 <DebugPanel value={{ xloggedIn: $loggedIn }}>
 	<button class="btn btn-light" onclick={handleTest}>Test Auth</button>
 </DebugPanel>
+-->
