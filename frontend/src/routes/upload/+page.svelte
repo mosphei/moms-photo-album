@@ -1,24 +1,12 @@
 <script lang="ts">
 	import Progress from '$lib/components/Progress.svelte';
 	import { get, writable, type Writable } from 'svelte/store';
+	import { uploadFileWithProgress } from './upload-file';
+	import { session } from '$lib/stores/session-store';
 
 	interface IFileInfo {
 		filename: string;
 		percentComplete: Writable<number>;
-	}
-	function uploadFileWithProgress(url: string, file: File, progressCallback: (e: number) => void) {
-		return new Promise((resolve, reject) => {
-			let percent = 0;
-			const millseconds = Math.ceil(Math.random() * 300);
-			let timerid = setInterval(() => {
-				percent += 1;
-				progressCallback(percent);
-				if (percent >= 100) {
-					clearInterval(timerid);
-					resolve(true);
-				}
-			}, millseconds);
-		});
 	}
 	let fileList: IFileInfo[] = $state([]);
 	function onSelectFiles() {
@@ -36,10 +24,19 @@
 						filename: file.name,
 						percentComplete: writable(0)
 					};
-
-					uploadFileWithProgress('/api/images/upload', file, (p) => {
-						fileEntry.percentComplete.set(p);
-						console.log(`p=${p}`);
+					const headers = {
+						Authorization: `Bearer ${get(session.token)?.access_token}`
+					};
+					uploadFileWithProgress(
+						'/api/images/upload/',
+						file,
+						(p) => {
+							console.log(`p=${p}`);
+							fileEntry.percentComplete.set(p);
+						},
+						headers
+					).catch((err) => {
+						alert(`Unable to send file: ${err}`);
 					});
 					fileList = [...fileList.filter((fentry) => get(fentry.percentComplete) < 100), fileEntry];
 				}
@@ -55,7 +52,7 @@
 		<Progress label={f.filename} percent={f.percentComplete} />
 	</div>
 {/each}
-<button onclick={onSelectFiles}>Upload</button>
+<button onclick={onSelectFiles} class="btn btn-primary">Upload</button>
 <input
 	type="file"
 	bind:this={input}

@@ -17,6 +17,6 @@
 	aria-valuemax="100"
 >
 	<div class="progress-bar bg-{$percent < 100 ? '' : 'success'}" style="width: {$percent}%">
-		{$percent}
+		{$percent}%
 	</div>
 </div>

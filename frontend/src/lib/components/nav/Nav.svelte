@@ -33,7 +33,6 @@
 			aria-label="Toggle navigation"
 			onclick={() => (show = !show)}
 		>
-			{show}
 			<span class="navbar-toggler-icon"></span>
 		</button>
 		<div class="collapse navbar-collapse" class:show id="navbarSupportedContent">

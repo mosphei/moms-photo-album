@@ -2,9 +2,11 @@ import os
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+
+from ..security import get_current_user
 #from .. import schemas, models, database # Note the relative imports
 from ..schemas import ImageSchema
-from ..models import Image
+from ..models import Image, User
 from ..database import get_db
 
 router = APIRouter(
@@ -16,9 +18,9 @@ MEDIADIR = "/media"
 
 # Upload image endpoint
 @router.post("/upload/", response_model=ImageSchema)
-async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
     # Save file to disk (you can later update this to store files in cloud storage)
-    upload_dir = "/media/images/"
+    upload_dir = f"/media/images/{current_user.id}"
     os.makedirs(upload_dir, exist_ok=True)
     file_location = os.path.join(upload_dir, str(file.filename))
     
