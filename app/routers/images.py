@@ -1,7 +1,9 @@
 import os
+from typing import List
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from ..security import get_current_user
 #from .. import schemas, models, database # Note the relative imports
@@ -49,3 +51,10 @@ async def get_image_file(image_id: int, db: Session = Depends(get_db)):
     if not imagepath:
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(imagepath[0])
+
+# Get a list of images
+@router.get("/", response_model=List[ImageSchema])
+async def get_image_list(q: str | None = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    stmt = select(Image).offset(skip).limit(limit)
+    result = db.execute(stmt).scalars().all()
+    return result
