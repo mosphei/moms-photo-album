@@ -1,6 +1,6 @@
 import os
 from typing import List
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -27,9 +27,8 @@ MEDIADIR = "/media"
 # Upload image endpoint
 @router.post("/upload/", response_model=ImageSchema)
 async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    # Save file to disk (you can later update this to store files in cloud storage)
-    upload_dir = f"/media/images/{current_user.id}"
-    os.makedirs(upload_dir, exist_ok=True)
+    filename = str(file.filename)
+    
     
     # get the image hash
     try:
@@ -40,7 +39,7 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
     # date
-    date_taken = get_image_date(img, str(file.filename))
+    date_taken = get_image_date(img, filename)
 
     # try and get exact matches
     try:
@@ -53,15 +52,26 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         parent_dirs = os.path.join(f"{date_taken.year:04d}", f"{date_taken.month:02d}")
     else:
         " split it on the filename to avoid directories with too many files"
-        base_name, extension = os.path.splitext(str(file.filename))
+        base_name, extension = os.path.splitext(filename)
         left_12 = base_name[:12]
         chunks_list = textwrap.wrap(left_12, 4)
         parent_dirs = os.path.join(*chunks_list)
     upload_dir = os.path.join(MEDIADIR,str(current_user.id),parent_dirs)
     os.makedirs(upload_dir, exist_ok=True)
-    file_location = os.path.join(upload_dir, str(file.filename))
-    with open(file_location, "xb") as f:
-        f.write(image_bytes)
+    file_location = os.path.join(upload_dir, filename)
+    # save the file
+    try:
+        with open(file_location, "xb") as f:
+            f.write(image_bytes)
+    except FileExistsError:
+        # Catch the specific error raised by the 'xb' mode
+        await file.close()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, # 409
+            detail=f"A file named '{filename}' already exists. Refusing to overwrite."
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving image: {str(e)}")
     
     # Save image metadata in MySQL database
     db_image = Image(file_path=file_location, date_taken=date_taken)

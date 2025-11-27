@@ -38,8 +38,9 @@ export function uploadFileWithProgress(
 					progressCallback(100);
 					resolve(xhr.response);
 				} else {
+					console.log(`error ${xhr.status} ${xhr.statusText}`)
 					progressCallback(0);
-					reject(xhr.status);
+					reject(`error ${xhr.status} ${xhr.statusText}`);
 				}
 			},
 			false
