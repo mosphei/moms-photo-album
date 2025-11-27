@@ -6,3 +6,5 @@ cryptography
 python-multipart
 pyjwt
 pwdlib[argon2]
+Pillow
+imagehash

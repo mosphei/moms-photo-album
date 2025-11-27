@@ -4,6 +4,9 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+import PIL 
+import imagehash
+import io
 
 from ..security import get_current_user
 #from .. import schemas, models, database # Note the relative imports
@@ -25,12 +28,19 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
     upload_dir = f"/media/images/{current_user.id}"
     os.makedirs(upload_dir, exist_ok=True)
     file_location = os.path.join(upload_dir, str(file.filename))
-    
+    # get the image hash
+    try:
+        image_bytes = await file.read()
+        img = PIL.Image.open(io.BytesIO(image_bytes))
+        img_hash = imagehash.average_hash(img)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
+
     with open(file_location, "wb") as f:
-        f.write(await file.read())
+        f.write(image_bytes)
     
     # Save image metadata in MySQL database
-    db_image = Image(file_path=file_location)
+    db_image = Image(file_path=file_location, hash=img_hash)
     db.add(db_image)
     db.commit()
     db.refresh(db_image)

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, HttpUrl
 
@@ -27,9 +28,10 @@ class ImageSchema(BaseModel):
 
 # Schema for creating a new image (ID handled by DB, provide file path and optional people IDs)
 class ImageCreate(BaseModel):
+    user_id: int
     file_path: str
-    description: Optional[str] = None
-    person_ids: List[int] = []
+    date_taken: datetime | None = None
+    hash: str
 
 class UserCreate(BaseModel):
     username: str
