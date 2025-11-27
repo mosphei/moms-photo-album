@@ -7,6 +7,9 @@ from sqlalchemy import select
 import PIL 
 import imagehash
 import io
+import textwrap
+
+from .get_date import get_image_date
 
 from ..security import get_current_user
 #from .. import schemas, models, database # Note the relative imports
@@ -27,20 +30,41 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
     # Save file to disk (you can later update this to store files in cloud storage)
     upload_dir = f"/media/images/{current_user.id}"
     os.makedirs(upload_dir, exist_ok=True)
-    file_location = os.path.join(upload_dir, str(file.filename))
+    
     # get the image hash
     try:
         image_bytes = await file.read()
         img = PIL.Image.open(io.BytesIO(image_bytes))
-        img_hash = imagehash.average_hash(img)
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
-    with open(file_location, "wb") as f:
+    # date
+    date_taken = get_image_date(img, str(file.filename))
+
+    # try and get exact matches
+    try:
+                
+        img_hash = imagehash.average_hash(img)
+    except Exception as e:
+        """unable to get hash"""
+        pass
+    if date_taken:
+        parent_dirs = os.path.join(f"{date_taken.year:04d}", f"{date_taken.month:02d}")
+    else:
+        " split it on the filename to avoid directories with too many files"
+        base_name, extension = os.path.splitext(str(file.filename))
+        left_12 = base_name[:12]
+        chunks_list = textwrap.wrap(left_12, 4)
+        parent_dirs = os.path.join(*chunks_list)
+    upload_dir = os.path.join(MEDIADIR,str(current_user.id),parent_dirs)
+    os.makedirs(upload_dir, exist_ok=True)
+    file_location = os.path.join(upload_dir, str(file.filename))
+    with open(file_location, "xb") as f:
         f.write(image_bytes)
     
     # Save image metadata in MySQL database
-    db_image = Image(file_path=file_location, hash=img_hash)
+    db_image = Image(file_path=file_location, date_taken=date_taken)
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
