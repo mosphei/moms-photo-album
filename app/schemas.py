@@ -16,7 +16,7 @@ class PersonCreate(BaseModel):
     name: str
 
 # Schema for a single image (used for reading data)
-class ImageSchema(BaseModel):
+class PhotoSchema(BaseModel):
     id: int
     file_path: str
     description: Optional[str] = None
@@ -27,7 +27,7 @@ class ImageSchema(BaseModel):
         from_attributes = True
 
 # Schema for creating a new image (ID handled by DB, provide file path and optional people IDs)
-class ImageCreate(BaseModel):
+class PhotoCreate(BaseModel):
     user_id: int
     file_path: str
     date_taken: datetime | None = None

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, select
-import PIL 
+from PIL import Image
 import imagehash
 import io
 import textwrap
@@ -13,8 +13,8 @@ from .get_date import get_image_date
 
 from ..security import get_current_user
 #from .. import schemas, models, database # Note the relative imports
-from ..schemas import ImageSchema
-from ..models import Image, User
+from ..schemas import PhotoSchema
+from ..models import Photo, User
 from ..database import get_db
 
 router = APIRouter(
@@ -30,14 +30,14 @@ SIZES = {
 }
 
 # Upload image endpoint
-@router.post("/upload/", response_model=ImageSchema)
+@router.post("/upload/", response_model=PhotoSchema)
 async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
     filename = str(file.filename)
     base_name, extension = os.path.splitext(filename)
     # get the image hash
     try:
         image_bytes = await file.read()
-        img = PIL.Image.open(io.BytesIO(image_bytes))
+        img = Image.open(io.BytesIO(image_bytes))
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
@@ -46,11 +46,11 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
     date_taken = get_image_date(img, filename)
 
     # try and get exact matches
-    dupe:Image|None = None
+    dupe:Photo|None = None
     img_hash = None
     try:
         img_hash = imagehash.average_hash(img)
-        dupe = db.query(Image).filter(Image.hash == str(img_hash)).first()
+        dupe = db.query(Photo).filter(Photo.hash == str(img_hash)).first()
     except Exception as e:
         """unable to get hash"""
         pass
@@ -94,16 +94,16 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
     
     # Save image metadata in MySQL database
     file_path = os.path.join(parent_dirs,filename)
-    db_image = Image(user_id=current_user.id, file_path=file_path, date_taken=date_taken, hash=img_hash)
+    db_image = Photo(user_id=current_user.id, file_path=file_path, date_taken=date_taken, hash=img_hash)
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
     return db_image
 
 # Retrieve image metadata endpoint
-@router.get("/{image_id}", response_model=ImageSchema)
+@router.get("/{image_id}", response_model=PhotoSchema)
 async def get_image(image_id: int, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    image = db.query(Image).filter(and_(Image.id == image_id, Image.user_id == current_user.id)).first()
+    image = db.query(Photo).filter(and_(Photo.id == image_id, Photo.user_id == current_user.id)).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     return image
@@ -111,7 +111,7 @@ async def get_image(image_id: int, db: Session = Depends(get_db), current_user:U
 # Retrieve image file endpoint
 @router.get("/files/{size}/{image_id}/{filename}")
 async def get_image_file(size: str, image_id: int, filename: str, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    image = db.query(Image).filter(and_(Image.id == image_id, Image.user_id == current_user.id)).first()
+    image = db.query(Photo).filter(and_(Photo.id == image_id, Photo.user_id == current_user.id)).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     # construct the location
@@ -124,8 +124,8 @@ async def get_image_file(size: str, image_id: int, filename: str, db: Session = 
         if not os.path.exists(thumb_location):
             "create the thumbnail"
             os.makedirs(os.path.join(MEDIADIR,"cache"), exist_ok=True)
-            fullimg = PIL.Image.open(file_location)
-            fullimg.thumbnail(SIZES[size], PIL.Image.Resampling.LANCZOS)
+            fullimg = Image.open(file_location)
+            fullimg.thumbnail(SIZES[size], Image.Resampling.LANCZOS)
             fullimg.save(thumb_location)
         return FileResponse(thumb_location)
     if size == "o":
@@ -133,8 +133,8 @@ async def get_image_file(size: str, image_id: int, filename: str, db: Session = 
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 # Get a list of images
-@router.get("/", response_model=List[ImageSchema])
+@router.get("/", response_model=List[PhotoSchema])
 async def get_image_list(q: str | None = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    stmt = select(Image).filter(Image.user_id == current_user.id).offset(skip).limit(limit)
+    stmt = select(Photo).filter(Photo.user_id == current_user.id).offset(skip).limit(limit)
     result = db.execute(stmt).scalars().all()
     return result

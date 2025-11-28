@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import ImageFile
 from datetime import datetime
 import re
 import os
@@ -31,7 +31,7 @@ def get_date_from_filename(filename: str) -> Optional[datetime]:
         return None
 
 
-def get_image_date(img: Image, filename: str) -> Optional[datetime]:
+def get_image_date(img: ImageFile.ImageFile, filename: str) -> Optional[datetime]:
     """
     Attempts to get the date from EXIF data first. 
     If not found, falls back to parsing the filename.

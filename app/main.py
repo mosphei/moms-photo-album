@@ -4,8 +4,8 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from .database import create_all_tables, get_db
-from models import Base, Image
-from schemas import ImageCreate, ImageSchema
+from models import Base, Photo
+from schemas import PhotoCreate, PhotoSchema
 from .routers import images, users, tests
 
 create_all_tables()
@@ -19,4 +19,5 @@ app.include_router(tests.router)
 
 @app.get("/api/cwd")
 def read_cwd():
+    "get cuurent dir"
     return os.getcwd()
