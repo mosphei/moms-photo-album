@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import and_, select
 import PIL 
 import imagehash
 import io
@@ -88,7 +88,8 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail=f"Error saving image: {str(e)}")
     
     # Save image metadata in MySQL database
-    db_image = Image(file_path=file_location, date_taken=date_taken, hash=img_hash)
+    file_path = os.path.join(parent_dirs,filename)
+    db_image = Image(user_id=current_user.id, file_path=file_path, date_taken=date_taken, hash=img_hash)
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
@@ -96,23 +97,26 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
 
 # Retrieve image metadata endpoint
 @router.get("/{image_id}", response_model=ImageSchema)
-async def get_image(image_id: int, db: Session = Depends(get_db)):
-    image = db.query(Image).filter(Image.id == image_id).first()
+async def get_image(image_id: int, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    image = db.query(Image).filter(and_(Image.id == image_id, Image.user_id == current_user.id)).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     return image
 
 # Retrieve image file endpoint
 @router.get("/files/{image_id}")
-async def get_image_file(image_id: int, db: Session = Depends(get_db)):
-    imagepath = db.query(Image.file_path).filter(Image.id == image_id).first()
+async def get_image_file(image_id: int, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    imagepath = db.query(Image.file_path).filter(and_(Image.id == image_id, Image.user_id == current_user.id)).first()
     if not imagepath:
         raise HTTPException(status_code=404, detail="Image not found")
-    return FileResponse(imagepath[0])
+    # construct the location
+    userdir = os.path.join(MEDIADIR,str(current_user.id))
+    file_location = os.path.join(userdir,imagepath[0])
+    return FileResponse(file_location)
 
 # Get a list of images
 @router.get("/", response_model=List[ImageSchema])
-async def get_image_list(q: str | None = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    stmt = select(Image).offset(skip).limit(limit)
+async def get_image_list(q: str | None = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    stmt = select(Image).filter(Image.user_id == current_user.id).offset(skip).limit(limit)
     result = db.execute(stmt).scalars().all()
     return result
