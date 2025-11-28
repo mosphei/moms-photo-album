@@ -23,6 +23,11 @@ router = APIRouter(
 )
 
 MEDIADIR = "/media"
+SIZES = {
+    "thumb":(128, 128),
+    "medium": (800, 600),
+    "large":(1920, 1080)
+}
 
 # Upload image endpoint
 @router.post("/upload/", response_model=ImageSchema)
@@ -104,15 +109,28 @@ async def get_image(image_id: int, db: Session = Depends(get_db), current_user:U
     return image
 
 # Retrieve image file endpoint
-@router.get("/files/{image_id}")
-async def get_image_file(image_id: int, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    imagepath = db.query(Image.file_path).filter(and_(Image.id == image_id, Image.user_id == current_user.id)).first()
-    if not imagepath:
+@router.get("/files/{size}/{image_id}/{filename}")
+async def get_image_file(size: str, image_id: int, filename: str, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    image = db.query(Image).filter(and_(Image.id == image_id, Image.user_id == current_user.id)).first()
+    if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     # construct the location
     userdir = os.path.join(MEDIADIR,str(current_user.id))
-    file_location = os.path.join(userdir,imagepath[0])
-    return FileResponse(file_location)
+    file_location = os.path.join(userdir,image.file_path)
+
+    if size == "thumb" or size == "medium" or size =="large":
+        filename = f"{image.id}_{size}.jpg"
+        thumb_location = os.path.join(MEDIADIR,"cache",filename)
+        if not os.path.exists(thumb_location):
+            "create the thumbnail"
+            os.makedirs(os.path.join(MEDIADIR,"cache"), exist_ok=True)
+            fullimg = PIL.Image.open(file_location)
+            fullimg.thumbnail(SIZES[size], PIL.Image.Resampling.LANCZOS)
+            fullimg.save(thumb_location)
+        return FileResponse(thumb_location)
+    if size == "o":
+        return FileResponse(file_location)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 # Get a list of images
 @router.get("/", response_model=List[ImageSchema])

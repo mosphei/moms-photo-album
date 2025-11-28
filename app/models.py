@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Text
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import relationship, declarative_base, Mapped, mapped_column
 
 Base = declarative_base()
 
@@ -25,7 +25,7 @@ class Image(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer,ForeignKey('users.id'))
     # We typically store the image file path/URL, not the image data itself, in the DB
-    file_path = Column(String(255), nullable=False)
+    file_path: Mapped[str] = mapped_column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     date_taken = Column(DateTime, nullable=True, index=True)
     date_uploaded = Column(DateTime, default=datetime.utcnow)
