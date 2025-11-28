@@ -1,3 +1,13 @@
+export interface IUploadResult {
+	statusCode: number;
+	statusText: string;
+	detail: any;
+}
+export interface IUpload {
+	status: 'waiting' | 'uploading' | 'complete' | 'error';
+	percentComplete: number;
+	result?: IUploadResult;
+}
 /**
  *
  * @param url api endpoint
@@ -15,7 +25,7 @@ export function uploadFileWithProgress(
 	file: File,
 	progressCallback: (percentComplete: number) => void,
 	headers: any
-) {
+): Promise<IUploadResult> {
 	return new Promise((resolve, reject) => {
 		const xhr = new XMLHttpRequest();
 		xhr.upload.addEventListener(
@@ -36,11 +46,33 @@ export function uploadFileWithProgress(
 				if (xhr.status >= 200 && xhr.status < 300) {
 					// success
 					progressCallback(100);
-					resolve(xhr.response);
+					resolve({
+						statusCode: xhr.status,
+						statusText: xhr.statusText,
+						detail: xhr.responseText
+					});
 				} else {
-					console.log(`error ${xhr.status} ${xhr.statusText}`)
+					let { status, statusText } = xhr;
+					let retval: any = { status, statusText };
+					const message = `error ${xhr.status} ${xhr.statusText}`;
+					let detail = xhr.responseText;
+					try {
+						const obj = JSON.parse(xhr.responseText);
+						retval = {
+							status,
+							statusText,
+							...obj
+						};
+					} catch {
+						retval = {
+							status,
+							statusText,
+							detail
+						};
+					}
+					console.log(xhr);
 					progressCallback(0);
-					reject(`error ${xhr.status} ${xhr.statusText}`);
+					reject(retval);
 				}
 			},
 			false
@@ -75,5 +107,31 @@ export function uploadFileWithProgress(
 		const formData = new FormData();
 		formData.append('file', file);
 		xhr.send(formData);
+	});
+}
+export function fakeUploadFileWithProgress(
+	url: string,
+	file: File,
+	progressCallback: (percentComplete: number) => void,
+	headers: any
+): Promise<IUploadResult> {
+	return new Promise((resolve, reject) => {
+		let percentComplete = 0;
+		const timerId = setInterval(
+			() => {
+				percentComplete += 1;
+				if (percentComplete >= 100) {
+					// done
+					resolve({
+						statusCode: 200,
+						statusText: 'Ok',
+						detail: 'dun'
+					});
+				} else {
+					progressCallback(percentComplete);
+				}
+			},
+			Math.floor(Math.random() * 300)
+		);
 	});
 }

@@ -28,8 +28,7 @@ MEDIADIR = "/media"
 @router.post("/upload/", response_model=ImageSchema)
 async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
     filename = str(file.filename)
-    
-    
+    base_name, extension = os.path.splitext(filename)
     # get the image hash
     try:
         image_bytes = await file.read()
@@ -42,23 +41,38 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
     date_taken = get_image_date(img, filename)
 
     # try and get exact matches
+    dupe:Image|None = None
+    img_hash = None
     try:
-                
         img_hash = imagehash.average_hash(img)
+        dupe = db.query(Image).filter(Image.hash == str(img_hash)).first()
     except Exception as e:
         """unable to get hash"""
         pass
+    if not dupe is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, # 409
+            detail=f"duplicate of file {dupe.id}"
+        )
     if date_taken:
         parent_dirs = os.path.join(f"{date_taken.year:04d}", f"{date_taken.month:02d}")
     else:
         " split it on the filename to avoid directories with too many files"
-        base_name, extension = os.path.splitext(filename)
+        
         left_12 = base_name[:12]
         chunks_list = textwrap.wrap(left_12, 4)
         parent_dirs = os.path.join(*chunks_list)
+
     upload_dir = os.path.join(MEDIADIR,str(current_user.id),parent_dirs)
     os.makedirs(upload_dir, exist_ok=True)
     file_location = os.path.join(upload_dir, filename)
+    # does the file already exist?
+    count = 0
+    while os.path.exists(file_location) and count < 1000:
+        count = count + 1
+        filename = f"{base_name}_{count:03d}{extension}"
+        file_location = os.path.join(upload_dir, filename)
+
     # save the file
     try:
         with open(file_location, "xb") as f:
@@ -74,7 +88,7 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail=f"Error saving image: {str(e)}")
     
     # Save image metadata in MySQL database
-    db_image = Image(file_path=file_location, date_taken=date_taken)
+    db_image = Image(file_path=file_location, date_taken=date_taken, hash=img_hash)
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
