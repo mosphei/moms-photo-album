@@ -9,23 +9,12 @@
 	const parts = photo.file_path.split('/');
 	const filename = parts.pop();
 	let img: HTMLImageElement;
-	$effect(() => {
-		const token = get(session.token);
-		fetch(`/api/images/files/thumb/${photo.id}/${filename}`, {
-			headers: {
-				Authorization: token ? `${token.token_type} ${token.access_token}` : 'undefined'
-			}
-		})
-			.then((response) => response.blob())
-			.then((blob) => {
-				img.src = URL.createObjectURL(blob);
-			});
-	});
-	onMount(() => {});
 </script>
 
 <a class="card" href={filename}>
-	<img class="card-img-top" bind:this={img} alt={filename} />
+	<img class="card-img-top" bind:this={img} alt={filename} 
+	src="/api/images/files/thumb/${photo.id}/${filename}"
+	/>
 	<div class="card-body">
 		{photo.date_taken.toLocaleDateString()}
 		{photo.description}
