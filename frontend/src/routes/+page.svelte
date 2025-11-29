@@ -2,9 +2,9 @@
 	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import type { Photo } from '$lib/models/photo';
 	import { getPhotos } from '$lib/stores/photo-store';
-	import { onMount } from 'svelte';
-	import PhotoElement from './PhotoElement.svelte';
+	import { onMount, tick } from 'svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
+	import Thumbnail from './Thumbnail.svelte';
 	let photos: Photo[] = $state([]);
 	let page = $state(1);
 	let limit = $state(5);
@@ -30,8 +30,18 @@
 	});
 </script>
 
+{#snippet thumbnail(p: Photo)}
+	<a class="card" href={`/api/images/file/medium/${p.id}/${p.id}.jpg`}>
+		<img class="card-img-top" alt={p.file_path} />
+		<div class="card-body">
+			{p.date_taken.toLocaleDateString()}
+			{p.description}
+		</div>
+	</a>
+{/snippet}
+
 {#each photos as photo}
-	<PhotoElement {photo} />
+	<Thumbnail {photo} />
 {/each}
 <div style="position:sticky; bottom:.25rem; clear: both;">
 	<Pagination {last} bind:page />

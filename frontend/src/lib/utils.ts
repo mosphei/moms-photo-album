@@ -41,19 +41,24 @@ export function dateTimeReviver(key: string, value: any) {
 	return value;
 }
 /** use to center a page in a button range */
-export function rangeAroundCenter(center: number, width: number, max: number) {
+export function rangeAroundCenter(center: number, width: number, max?: number) {
 	let retval: number[] = [center];
 	let start = center - Math.floor(width / 2);
 	if (start < 1) {
 		start = 1;
 	}
 	let end = start + width - 1;
-	if (max && end > max) {
-		start = end - width;
+	if (!max) {
+		max = center + 1;
+	}
+	if (end > max) {
+		end = max;
+		start = end - width + 1;
 		if (start < 1) {
 			start = 1;
 		}
 	}
-	const length = end - start;
+
+	const length = end - start + 1;
 	return Array.from({ length: length }, (_, index) => start + index);
 }

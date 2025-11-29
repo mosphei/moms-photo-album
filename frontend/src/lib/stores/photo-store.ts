@@ -6,7 +6,7 @@ import { createFetcher, createStore, fetchApi } from './common-store';
 const data: Photo[] = [];
 
 export async function getPhotos(page: number, pagesize: number): Promise<PaginatedResults<Photo>> {
-	const offset = page * pagesize;
+	const offset = (page - 1) * pagesize;
 	const url = `/api/images/?offset=${offset}&limit=${pagesize}`;
 	console.log(`url:${url}`);
 	const response = await fetchApi(url, {
