@@ -4,7 +4,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from .database import create_all_tables, get_db
-from models import Base, Photo
+from models import Base, PhotoModel
 from schemas import PhotoCreate, PhotoSchema
 from .routers import images, users, tests
 

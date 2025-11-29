@@ -18,9 +18,9 @@ class Person(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), index=True)
     # Establishes the link to the Photo model via the association table
-    photos = relationship("Photo", secondary=photo_person_association, back_populates="people")
+    photos = relationship("PhotoModel", secondary=photo_person_association, back_populates="people")
 
-class Photo(Base):
+class PhotoModel(Base):
     __tablename__ = 'photos'
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer,ForeignKey('users.id'))

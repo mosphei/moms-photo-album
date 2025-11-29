@@ -1,4 +1,3 @@
-
 /** applies nested properties in operand to target
  * overwrites existing target properties
  * does not mutate target
@@ -40,4 +39,21 @@ export function dateTimeReviver(key: string, value: any) {
 		return new Date(value);
 	}
 	return value;
+}
+/** use to center a page in a button range */
+export function rangeAroundCenter(center: number, width: number, max: number) {
+	let retval: number[] = [center];
+	let start = center - Math.floor(width / 2);
+	if (start < 1) {
+		start = 1;
+	}
+	let end = start + width - 1;
+	if (max && end > max) {
+		start = end - width;
+		if (start < 1) {
+			start = 1;
+		}
+	}
+	const length = end - start;
+	return Array.from({ length: length }, (_, index) => start + index);
 }

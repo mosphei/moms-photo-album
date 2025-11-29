@@ -4,30 +4,36 @@
 	import { getPhotos } from '$lib/stores/photo-store';
 	import { onMount } from 'svelte';
 	import PhotoElement from './PhotoElement.svelte';
-	let pics:Photo[] = $state([]);
-	$effect(()=>{
+	import Pagination from '$lib/components/Pagination.svelte';
+	let photos: Photo[] = $state([]);
+	let page = $state(1);
+	let limit = $state(5);
+	let total = $state(-1);
+	let last: number | undefined = $state(undefined);
 
-	})
-	onMount(()=>{
-		getPhotos(0, 5)
-		.then(p=>pics = p);
+	async function loadPhotos() {
+		const results = await getPhotos(page, limit);
+		photos = results.items;
+		total = results.total_count;
+		if (total) {
+			last = Math.ceil(total / limit);
+		}
+	}
+
+	$effect(() => {
+		console.log(`page=${page}`);
+		loadPhotos();
+	});
+
+	onMount(() => {
+		loadPhotos();
 	});
 </script>
-{#each pics as photo}
-	<div>
-		<PhotoElement {photo} />
-	</div>
+
+{#each photos as photo}
+	<PhotoElement {photo} />
 {/each}
-<div style="position:sticky; bottom:.25rem">
-	<ul class="pagination">
-		<li class="page-item"><a href="#" class="page-link">First</a></li>
-		<li class="page-item"><a href="#" class="page-link">Previous</a></li>
-		<li class="page-item"><a class="page-link" href="#">1</a></li>
-		<li class="page-item active">
-		<a class="page-link" href="#" aria-current="page">2</a>
-		</li>
-		<li class="page-item"><a class="page-link" href="#">3</a></li>
-		<li class="page-item"><a class="page-link" href="#">Next</a></li>
-		<li class="page-item"><a class="page-link" href="#">Last</a></li>
-	</ul>
+<div style="position:sticky; bottom:.25rem; clear: both;">
+	<Pagination {last} bind:page />
 </div>
+<DebugPanel value={photos} />

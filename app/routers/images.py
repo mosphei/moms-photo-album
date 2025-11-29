@@ -16,7 +16,7 @@ from .get_date import get_image_date
 from ..security import get_current_user
 #from .. import schemas, models, database # Note the relative imports
 from ..schemas import PhotoSchema
-from ..models import Photo, User
+from ..models import PhotoModel, User
 from ..database import get_db
 
 router = APIRouter(
@@ -48,11 +48,11 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
     date_taken = get_image_date(img, filename)
 
     # try and get exact matches
-    dupe:Photo|None = None
+    dupe:PhotoModel|None = None
     img_hash = None
     try:
         img_hash = imagehash.average_hash(img)
-        dupe = db.query(Photo).filter(Photo.hash == str(img_hash)).first()
+        dupe = db.query(PhotoModel).filter(PhotoModel.hash == str(img_hash)).first()
     except Exception as e:
         """unable to get hash"""
         pass
@@ -96,7 +96,7 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
     
     # Save image metadata in MySQL database
     file_path = os.path.join(parent_dirs,filename)
-    db_image = Photo(user_id=current_user.id, file_path=file_path, date_taken=date_taken, hash=img_hash)
+    db_image = PhotoModel(user_id=current_user.id, file_path=file_path, date_taken=date_taken, hash=img_hash)
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
@@ -105,7 +105,7 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
 # Retrieve image metadata endpoint
 @router.get("/{image_id}", response_model=PhotoSchema)
 async def get_image(image_id: int, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    image = db.query(Photo).filter(and_(Photo.id == image_id, Photo.user_id == current_user.id)).first()
+    image = db.query(PhotoModel).filter(and_(PhotoModel.id == image_id, PhotoModel.user_id == current_user.id)).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     return image
@@ -113,7 +113,7 @@ async def get_image(image_id: int, db: Session = Depends(get_db), current_user:U
 # Retrieve image file endpoint
 @router.get("/files/{size}/{image_id}/{filename}")
 async def get_image_file(size: str, image_id: int, filename: str, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    image = db.query(Photo).filter(and_(Photo.id == image_id, Photo.user_id == current_user.id)).first()
+    image = db.query(PhotoModel).filter(and_(PhotoModel.id == image_id, PhotoModel.user_id == current_user.id)).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     # construct the location
@@ -136,16 +136,29 @@ async def get_image_file(size: str, image_id: int, filename: str, db: Session = 
 
 # Get a list of images
 @router.get("/", response_model=PaginatedResults[PhotoSchema])
-async def get_image_list(q: str | None = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+async def get_image_list(q: str | None = None, offset: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
     
-    count_stmt = select(func.count()).select_from(User)
-    total_count = db.execute(count_stmt).scalar() or 0
+# Define the filter condition
+    user_filter_condition = PhotoModel.user_id == current_user.id
+
+    # 1. Statement to fetch the *paginated items* (with filter, limit, and offset)
+    items_stmt = select(PhotoModel).where(user_filter_condition).offset(offset).limit(limit)
+    photo_list = db.execute(items_stmt).scalars().all()
+
+    # 2. Statement to fetch the *total count* (with the same filter, but no limit/offset)
+    # We use func.count() to generate a COUNT(*) in SQL.
+    # .select_from(PhotoModel) can be useful for clarity or complex joins.
+    count_stmt = select(func.count()).select_from(PhotoModel).where(user_filter_condition)
     
-    stmt = select(Photo).filter(Photo.user_id == current_user.id).offset(skip).limit(limit)
-    photo_list = db.execute(stmt).scalars().all()
-    retval: PaginatedResults[PhotoSchema] = PaginatedResults(
-        total_count= total_count,
-        items= [],
-        offset= skip,
-        limit= limit
+    # Execute the count statement to get a single scalar result (the total number)
+    total_count = db.execute(count_stmt).scalar()
+    
+    # 3. Create the Pydantic response instance
+    paginated_response = PaginatedResults[PhotoSchema](
+        items=photo_list,
+        total_count=total_count,
+        offset=offset,
+        limit=limit
     )
+    
+    return paginated_response

@@ -6,12 +6,15 @@ import { deepMerge } from '$lib/utils';
 export async function fetchApi(url: string, opts = {}) {
 	if (browser) {
 		const token = get(session.token);
-		const fetchOpts = deepMerge({
-			method: 'GET',
-			headers: {
-				Authorization: token ? `${token.token_type} ${token.access_token}` : 'undefined'
-			}
-		}, opts);
+		const fetchOpts = deepMerge(
+			{
+				method: 'GET',
+				headers: {
+					Authorization: token ? `${token.token_type} ${token.access_token}` : 'undefined'
+				}
+			},
+			opts
+		);
 		console.log('fetchOpts', fetchOpts);
 		const response = await fetch(url, fetchOpts);
 		if (!response.ok) {
