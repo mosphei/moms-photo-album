@@ -19,6 +19,7 @@ class PersonCreate(BaseModel):
 class PhotoSchema(BaseModel):
     id: int
     file_path: str
+    date_taken: datetime
     description: Optional[str] = None
     # Nested Pydantic model to list people in the image
     people: List[PersonSchema] = []

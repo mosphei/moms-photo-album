@@ -3,11 +3,13 @@ from typing import List
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from PIL import Image
 import imagehash
 import io
 import textwrap
+
+from ..pagination import PaginatedResults
 
 from .get_date import get_image_date
 
@@ -133,8 +135,17 @@ async def get_image_file(size: str, image_id: int, filename: str, db: Session = 
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 # Get a list of images
-@router.get("/", response_model=List[PhotoSchema])
+@router.get("/", response_model=PaginatedResults[PhotoSchema])
 async def get_image_list(q: str | None = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    
+    count_stmt = select(func.count()).select_from(User)
+    total_count = db.execute(count_stmt).scalar() or 0
+    
     stmt = select(Photo).filter(Photo.user_id == current_user.id).offset(skip).limit(limit)
-    result = db.execute(stmt).scalars().all()
-    return result
+    photo_list = db.execute(stmt).scalars().all()
+    retval: PaginatedResults[PhotoSchema] = PaginatedResults(
+        total_count= total_count,
+        items= [],
+        offset= skip,
+        limit= limit
+    )

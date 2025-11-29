@@ -1,0 +1,43 @@
+
+/** applies nested properties in operand to target
+ * overwrites existing target properties
+ * does not mutate target
+ */
+export function deepMerge(target: any, operand: any) {
+	const output = JSON.parse(JSON.stringify(target));
+	// Iterate over the keys in the source object
+	for (const key in operand) {
+		// Check if the key exists directly on the source object (not inherited)
+		if (Object.prototype.hasOwnProperty.call(operand, key)) {
+			// If both target and source have the key and both values are objects,
+			// recursively merge them.
+			if (
+				typeof output[key] === 'object' &&
+				output[key] !== null &&
+				typeof operand[key] === 'object' &&
+				operand[key] !== null &&
+				!Array.isArray(output[key]) && // Ensure they are plain objects, not arrays
+				!Array.isArray(operand[key])
+			) {
+				output[key] = deepMerge(target[key], operand[key]);
+			} else {
+				// Otherwise, directly assign the source property to the target
+				output[key] = operand[key];
+			}
+		}
+	}
+	return output;
+}
+
+/** use to parse dates from JSON as Date and not string
+ *  JSON.parse(txt, dateTimeReviver);
+ * assumes time zone built in to date string
+ * e.g. 2024-08-08T08:55:36-07:00
+ */
+export function dateTimeReviver(key: string, value: any) {
+	if (typeof value == 'string' && /\d{4}-\d{2}-\d{2}[ T]\d\d:\d\d:\d\d/.test(value)) {
+		// it's a date
+		return new Date(value);
+	}
+	return value;
+}
