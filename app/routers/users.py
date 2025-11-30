@@ -1,11 +1,12 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from sqlalchemy import and_, delete, or_
 from sqlalchemy.orm import Session
-from ..models import User
+from ..models import User, UserSession
 from ..database import get_db
-from ..security import create_access_token, get_current_user, hash_password, verify_password, ACCESS_TOKEN_EXPIRE_MINUTES
-from ..schemas import UserCreate, Token
+from ..security import generate_session_id, get_current_user, hash_password, verify_password, MAX_SESSION_AGE
+from ..schemas import UserCreate, Token, UserSchema
 
 router = APIRouter(
     prefix="/api/users",  # Sets the base path for all routes in this file
@@ -29,20 +30,41 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     return {"message": "User created successfully"}
 
 # Token Endpoint (Login)
-@router.post("/token", response_model=Token)
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = get_user_from_db(db, form_data.username)
-    if not user or not verify_password(form_data.password, str(user.hashed_password)):
+@router.post("/login", response_model=UserSchema)
+def login_for_access_token(username: str, password: str, response: Response, db: Session = Depends(get_db)):
+    user = get_user_from_db(db, username)
+    if not user or not verify_password(password, str(user.hashed_password)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+    session_id = generate_session_id()
+    # store the session
+    newsession= UserSession(id=session_id, user_id=user.id)
+    db.add(newsession)
+    db.commit()
+    db.refresh(newsession)
+    # set the cookie
+    max_age_seconds = int(MAX_SESSION_AGE.total_seconds())
+    response.set_cookie(
+        key="session_id",           # The name of the cookie
+        value=session_id,           # The generated value
+        httponly=True,              # Prevents JavaScript access (SECURITY BEST PRACTICE)
+        secure=True,                # Ensures cookie is sent over HTTPS only (SECURITY BEST PRACTICE)
+        samesite="lax",             # Mitigates CSRF attacks
+        max_age=max_age_seconds,            # Optional: Cookie expiration time in seconds (e.g., 2 weeks)
+        expires=max_age_seconds,            # Optional: Same as max_age, useful for older browsers
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+
+    return user
+@router.get("/logout")
+def log_user_out(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    session_id = request.cookies.get("session_id")
+    delete_stmt = delete(UserSession).where(and_(UserSession.id==session_id,UserSession.user_id == current_user.id))
+    db.execute(delete_stmt)
+    db.commit()
+    # remove the cookie?
 
 # Protected Endpoint Example
 @router.get("/me")

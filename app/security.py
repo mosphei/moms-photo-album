@@ -1,52 +1,43 @@
 from datetime import datetime, timedelta
-from typing import Optional
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-import jwt # Import the PyJWT library
-from jwt import PyJWTError # Import the specific error class
-# Assume get_user_from_db is imported from your database module
-from database import get_db
+import secrets
+from fastapi import Depends, HTTPException, Request, status
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
-from models import User
+
+from .models import User, UserSession
+from .database import get_db
 from pwdlib import PasswordHash
 
-# Secret key and algorithm for JWT (change these in a real application)
-SECRET_KEY = "your-very-secure-and-long-secret-key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 15 # 15 days
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/users/token")
+MAX_SESSION_AGE = timedelta(days=14)
 password_hash = PasswordHash.recommended()
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(days=15)
-    to_encode.update({"exp": expire})
-    # Use jwt.encode from PyJWT
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except PyJWTError:
-        raise credentials_exception
+def generate_session_id(length_bytes=32):
+    """
+    Generates a secure, random session ID in hexadecimal format.
     
-    # Use the session to query the user
-    user = db.query(User).filter(User.username == username).first()
+    The length_bytes parameter controls the entropy (randomness) of the token.
+    32 bytes provides 256 bits of entropy, resulting in a 64 character hex string.
+    """
+    session_id = secrets.token_hex(length_bytes)
+    return session_id
+
+async def get_current_user(request: Request, db: Session = Depends(get_db)):
+    session_id = request.cookies.get("session_id")
+    # first delete any expired sessions
+    cutoff_time = datetime.utcnow() - MAX_SESSION_AGE
+    delete_stmt = delete(UserSession).where(UserSession.timestamp < cutoff_time)
+    db.execute(delete_stmt)
+    db.commit()
+    # cleanup_expired_sessions()
+    sess = db.query(UserSession).filter(UserSession.id == session_id).first()
+    user = None
+    if sess:
+        user = db.query(User).filter(User.id == sess.user_id).first()
     if user is None:
-        raise credentials_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate session",
+        )
     return user
 
 def hash_password(password: str):

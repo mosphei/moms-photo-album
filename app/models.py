@@ -40,3 +40,9 @@ class User(Base):
     username = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     Column('person_id', Integer, ForeignKey('people.id'), primary_key=True)
+
+class UserSession(Base):
+    __tablename__ = "sessions"
+    id = Column(String(64), primary_key=True, index=True)
+    user_id = Column(Integer,ForeignKey('users.id'))
+    timestamp = Column(DateTime, default=datetime.utcnow)

@@ -47,7 +47,7 @@ class UserAuthenticate(BaseModel):
 class UserSchema(BaseModel):
     id: int 
     username: str
-    person: PersonSchema
+    person: PersonSchema | None = None
 
 class Token(BaseModel):
     access_token: str
