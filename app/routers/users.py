@@ -1,12 +1,10 @@
-from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from sqlalchemy import and_, delete, or_
 from sqlalchemy.orm import Session
 from ..models import User, UserSession
 from ..database import get_db
 from ..security import generate_session_id, get_current_user, hash_password, verify_password, MAX_SESSION_AGE
-from ..schemas import UserCreate, Token, UserSchema
+from ..schemas import UserCreate, UserSchema
 
 router = APIRouter(
     prefix="/api/users",  # Sets the base path for all routes in this file
@@ -29,9 +27,9 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return {"message": "User created successfully"}
 
-# Token Endpoint (Login)
+
 @router.post("/login", response_model=UserSchema)
-def login_for_access_token(username: str, password: str, response: Response, db: Session = Depends(get_db)):
+def login_for_access_token(response: Response, username=Form(...), password = Form(...), db: Session = Depends(get_db)):
     user = get_user_from_db(db, username)
     if not user or not verify_password(password, str(user.hashed_password)):
         raise HTTPException(

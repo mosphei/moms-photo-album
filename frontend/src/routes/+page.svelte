@@ -31,8 +31,12 @@
 </script>
 
 {#snippet thumbnail(p: Photo)}
-	<a class="card" href={`/api/images/file/medium/${p.id}/${p.id}.jpg`}>
-		<img class="card-img-top" alt={p.file_path} />
+	<a class="card" href={`/api/images/files/medium/${p.id}/${p.id}.jpg`}>
+		<img
+			class="card-img-top"
+			alt={p.file_path}
+			src={`/api/images/files/thumb/${p.id}/${p.id}.jpg`}
+		/>
 		<div class="card-body">
 			{p.date_taken.toLocaleDateString()}
 			{p.description}

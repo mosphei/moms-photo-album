@@ -13,7 +13,7 @@
 		const formData = new FormData(form);
 		console.log(formData);
 		try {
-			const response = await fetch('/api/users/token', {
+			const response = await fetch('/api/users/login', {
 				method: 'POST',
 				body: formData
 			});
@@ -35,11 +35,7 @@
 <div class="card">
 	<div class="card-body">
 		<h3 class="card-title">Log in</h3>
-		<form bind:this={form} onsubmit={handleSubmit}>
-			<input type="hidden" name="grant_type" value="password" />
-			<input type="hidden" name="scope" value="" />
-			<input type="hidden" name="client_id" value="" />
-			<input type="hidden" name="client_secret" value="" />
+		<form bind:this={form} onsubmit={handleSubmit} action="/api/users/login">
 			<div class="mb-3">
 				<label for="username">Username:</label>
 				<input
