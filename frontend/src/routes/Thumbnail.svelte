@@ -12,8 +12,11 @@
 </script>
 
 <a class="card" href={filename}>
-	<img class="card-img-top" bind:this={img} alt={filename} 
-	src="/api/images/files/thumb/${photo.id}/${filename}"
+	<img
+		class="card-img-top"
+		bind:this={img}
+		alt={filename}
+		src="/api/images/files/thumb/${photo.id}/${filename}"
 	/>
 	<div class="card-body">
 		{photo.date_taken.toLocaleDateString()}
