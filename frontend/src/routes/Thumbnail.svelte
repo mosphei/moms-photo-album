@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Photo } from '$lib/models/photo';
+	import { photoPath } from '$lib/stores/photo-store';
 
 	let { photo }: { photo: Photo } = $props();
 	const parts = photo.file_path.split('/');
@@ -12,7 +13,7 @@
 		class="card-img-top"
 		bind:this={img}
 		alt={filename}
-		src="/api/images/files/thumb/{photo.id}/{filename}"
+		src={photoPath('t', photo.id, filename)}
 	/>
 	<div class="card-body">
 		{photo.date_taken.toLocaleDateString()}
@@ -37,5 +38,6 @@
 		width: 12rem;
 		height: 8rem;
 		object-fit: cover;
+		object-position: top;
 	}
 </style>

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, select
-from PIL import Image
+from PIL import Image, ImageOps
 import imagehash
 import io
 import textwrap
@@ -12,9 +12,8 @@ import textwrap
 from ..pagination import PaginatedResults
 
 from .get_date import get_image_date
-
+from ..settings import IMAGESIZES, MEDIADIR
 from ..security import get_current_user
-#from .. import schemas, models, database # Note the relative imports
 from ..schemas import PhotoSchema
 from ..models import PhotoModel, User
 from ..database import get_db
@@ -23,13 +22,6 @@ router = APIRouter(
     prefix="/api/images",  # Sets the base path for all routes in this file
     tags=["images"],   # Groups these routes in the API docs (Swagger UI)
 )
-
-MEDIADIR = "/media"
-SIZES = {
-    "thumb":(128, 128),
-    "medium": (800, 600),
-    "large":(1920, 1080)
-}
 
 # Upload image endpoint
 @router.post("/upload/", response_model=PhotoSchema)
@@ -120,15 +112,16 @@ async def get_image_file(size: str, image_id: int, filename: str, db: Session = 
     userdir = os.path.join(MEDIADIR,str(current_user.id))
     file_location = os.path.join(userdir,image.file_path)
 
-    if size == "thumb" or size == "medium" or size =="large":
+    if size in IMAGESIZES:
         filename = f"{image.id}_{size}.jpg"
         thumb_location = os.path.join(MEDIADIR,"cache",filename)
         if not os.path.exists(thumb_location):
             "create the thumbnail"
             os.makedirs(os.path.join(MEDIADIR,"cache"), exist_ok=True)
-            fullimg = Image.open(file_location)
-            fullimg.thumbnail(SIZES[size], Image.Resampling.LANCZOS)
-            fullimg.save(thumb_location)
+            with Image.open(file_location) as img:
+                img_transposed = ImageOps.exif_transpose(img)
+                img_transposed.thumbnail(IMAGESIZES[size], Image.Resampling.LANCZOS)
+                img_transposed.save(thumb_location)
         return FileResponse(thumb_location)
     if size == "o":
         return FileResponse(file_location)
