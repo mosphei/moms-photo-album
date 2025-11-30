@@ -33,67 +33,80 @@
 		loadPhotos();
 	});
 
-
 	function handleThumbnailClick(e: MouseEvent, photo: Photo): void {
 		e.preventDefault();
-		selectedPhotoIndex = photos.findIndex(p=>p.id === photo.id);
+		selectedPhotoIndex = photos.findIndex((p) => p.id === photo.id);
 		dialog.showModal();
 	}
 </script>
 
 {#each photos as photo}
-	<Thumbnail {photo} onclick={e=>handleThumbnailClick(e,photo)}/>
+	<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
 {/each}
-<dialog bind:this={dialog} >
+<dialog bind:this={dialog} onclick={(e) => dialog.close()}>
 	{#if selectedPhotoIndex >= 0}
-	{@const photo = photos[selectedPhotoIndex]}
-	<div class="modal-dialog" use:clickOutside={(e)=>dialog.close()}>
-		<div class="modal-header">
-			<h5 class="modal-title">
-				{photo.date_taken.toLocaleDateString()}
-				{photo.file_path}
-			</h5>
-			<button type="button" class="btn-close" aria-label="Close"></button>
+		{@const photo = photos[selectedPhotoIndex]}
+		<div class="modal-dialog" onclick={(e) => e.preventDefault()}>
+			<div class="modal-header">
+				<h5 class="modal-title">
+					{photo.date_taken.toLocaleDateString()}
+					{photo.file_path}
+				</h5>
+				<button type="button" class="btn-close" aria-label="Close"></button>
+			</div>
+			<div class="modal-body mb-2">
+				<img src={photoPath('m', photo.id)} alt={photo.file_path} />
+			</div>
+			<div class="modal-footer">
+				<button class="btn btn-primary">Prev</button>
+				<span style="flex:1"></span>
+				<button class="btn btn-primary">Next</button>
+			</div>
 		</div>
-		<div class="modal-body mb-2">
-			<img src={photoPath("m", photo.id)} alt={photo.file_path} >
-		</div>
-		<div class="modal-footer">
-			<button class="btn btn-primary">Prev</button>
-			<span style="flex:1"></span>
-			<button class="btn btn-primary">Next</button>
-		
-		</div>
-	</div>
-	
 	{/if}
 </dialog>
 <div style="position:sticky; bottom:.25rem; clear: both;">
 	<Pagination {last} bind:page />
 </div>
 <DebugPanel value={photos} />
+
 <style>
+	.modal-dialog {
+		padding: 0.25rem;
+	}
+	.modal-header {
+		border-bottom: solid 1px;
+		border-color: var(--mo-border-color);
+		margin-bottom: 0.25rem;
+		padding-bottom: 0.25rem;
+	}
+	.modal-footer {
+		border-top: solid 1px;
+		border-color: var(--mo-border-color);
+		margin-top: 0.25rem;
+		padding-top: 0.25rem;
+	}
 	/* Styles for the dialog itself (optional) */
-dialog {
-  border: none;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
+	dialog {
+		border: none;
+		border-radius: 10px;
+		padding: 0px;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	}
 
-/* Styles for the backdrop */
-dialog::backdrop {
-  /* Change the background color from the default low-opacity black */
-  background-color: rgba(0, 0, 100, 0.7); 
-  
-  /* Use gradients, images, etc. */
-  /* background-image: linear-gradient(45deg, magenta, dodgerblue); */
+	/* Styles for the backdrop */
+	dialog::backdrop {
+		/* Change the background color from the default low-opacity black */
+		background-color: rgba(0, 0, 100, 0.7);
 
-  /* You can also add blur effects to the content behind the dialog */
-  /* Note: Browser support for backdrop-filter is good, but check if needed */
-  backdrop-filter: blur(5px);
-  
-  /* Add transitions/animations */
-  /* transition: background-color 0.3s ease-in-out; */
-}
+		/* Use gradients, images, etc. */
+		/* background-image: linear-gradient(45deg, magenta, dodgerblue); */
+
+		/* You can also add blur effects to the content behind the dialog */
+		/* Note: Browser support for backdrop-filter is good, but check if needed */
+		backdrop-filter: blur(5px);
+
+		/* Add transitions/animations */
+		/* transition: background-color 0.3s ease-in-out; */
+	}
 </style>

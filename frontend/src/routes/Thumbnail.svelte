@@ -3,15 +3,14 @@
 	import { photoPath } from '$lib/stores/photo-store';
 	interface IProps {
 		photo: Photo;
-		onclick?: (e:MouseEvent)=>void;
+		onclick?: (e: MouseEvent) => void;
 	}
 	let { photo, onclick = undefined }: IProps = $props();
 	const parts = photo.file_path.split('/');
 	const filename = parts.pop();
 	let img: HTMLImageElement;
 
-
-	function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLAnchorElement; }) {
+	function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLAnchorElement }) {
 		throw new Error('Function not implemented.');
 	}
 </script>
