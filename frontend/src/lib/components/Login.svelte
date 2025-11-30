@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { me } from '$lib/stores/me-store';
-	import { session, type TokenResponse } from '$lib/stores/session-store';
 
 	let form: HTMLFormElement;
 	let username = $state('');
 	let password = $state('');
+	let message: { type: string; detail: string } | null = $state(null);
 
 	async function handleSubmit(
 		event: SubmitEvent & { currentTarget: EventTarget & HTMLFormElement }
@@ -17,17 +17,31 @@
 				method: 'POST',
 				body: formData
 			});
+			const result = await response.text();
+			console.log(result);
 			if (!response.ok) {
-				const result = await response.text();
 				throw new Error(result);
 			}
-			const result: TokenResponse = await response.json();
-			console.log(`got result`, result);
-			session.setToken(result);
+			message = { type: 'success', detail: 'Success!' };
+
 			me.refresh();
-		} catch (err) {
+		} catch (err: any) {
 			console.log(`got err`, err);
-			alert(err);
+			let msg = {
+				type: 'error',
+				detail: ''
+			};
+			try {
+				const result = JSON.parse(err);
+				if ('detail' in err) {
+					msg.detail = result.detail;
+				} else {
+					msg.detail = result;
+				}
+			} catch {
+				msg.detail = err;
+			}
+			message = msg;
 		}
 	}
 </script>
@@ -59,6 +73,11 @@
 					class="form-control"
 				/>
 			</div>
+			{#if message}
+				<div class="alert {message.type == 'error' ? 'alert-danger' : 'alert-secondary'} mb-2">
+					{message.detail}
+				</div>
+			{/if}
 			<button class="btn btn-primary">Submit</button>
 		</form>
 	</div>

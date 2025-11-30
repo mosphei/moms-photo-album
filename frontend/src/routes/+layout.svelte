@@ -7,7 +7,7 @@
 	import { fetchApi } from '$lib/stores/common-store';
 
 	let { children } = $props();
-	const loggedIn = session.loggedIn;
+	const loggedIn = session;
 
 	async function handleTest() {
 		const txt = await fetchApi('/api/users/me');

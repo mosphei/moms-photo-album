@@ -2,12 +2,17 @@
 	import { beforeNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { clickOutside } from '$lib/click-outside';
+	import { fetchApi } from '$lib/stores/common-store';
 	import { me } from '$lib/stores/me-store';
 	import { session } from '$lib/stores/session-store';
 	import NavDropdown from './NavDropdown.svelte';
 
-	function handleLogout(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
-		session.clearToken();
+	async function handleLogout(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		await fetchApi('/api/users/logout');
+		me.refresh();
+		show = false;
 	}
 
 	let show = $state(false);
@@ -60,7 +65,7 @@
 				<input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
 				<button class="btn btn-outline-success" type="submit">Search</button>
 			</form>
-			{#if $me}
+			{#if $me && $session}
 				<ul class="navbar-nav mb-2 mb-lg-0">
 					<NavDropdown text={$me.username}>
 						<button class="dropdown-item" onclick={handleLogout}> Log Out </button>

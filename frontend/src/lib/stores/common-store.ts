@@ -1,25 +1,15 @@
 import { browser } from '$app/environment';
 import { get, type Readable, writable } from 'svelte/store';
-import { session, type TokenResponse } from './session-store';
+import { session } from './session-store';
 import { deepMerge } from '$lib/utils';
 
 export async function fetchApi(url: string, opts = {}) {
 	if (browser) {
-		const token = get(session.token);
-		const fetchOpts = deepMerge(
-			{
-				method: 'GET',
-				headers: {
-					Authorization: token ? `${token.token_type} ${token.access_token}` : 'undefined'
-				}
-			},
-			opts
-		);
-		console.log('fetchOpts', fetchOpts);
-		const response = await fetch(url, fetchOpts);
+		console.log('fetch', url, opts);
+		const response = await fetch(url, opts);
 		if (!response.ok) {
 			if (response.status === 401) {
-				session.clearToken();
+				session.set(false);
 			}
 			const result = await response.text();
 			console.log('Error getting data: ', result, response);
