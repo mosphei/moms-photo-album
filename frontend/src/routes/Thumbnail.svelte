@@ -1,14 +1,22 @@
 <script lang="ts">
 	import type { Photo } from '$lib/models/photo';
 	import { photoPath } from '$lib/stores/photo-store';
-
-	let { photo }: { photo: Photo } = $props();
+	interface IProps {
+		photo: Photo;
+		onclick?: (e:MouseEvent)=>void;
+	}
+	let { photo, onclick = undefined }: IProps = $props();
 	const parts = photo.file_path.split('/');
 	const filename = parts.pop();
 	let img: HTMLImageElement;
+
+
+	function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLAnchorElement; }) {
+		throw new Error('Function not implemented.');
+	}
 </script>
 
-<a class="card" href={filename}>
+<a class="card" href={filename} {onclick}>
 	<img
 		class="card-img-top"
 		bind:this={img}
