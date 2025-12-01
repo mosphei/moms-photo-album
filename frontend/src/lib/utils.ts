@@ -1,3 +1,5 @@
+import { browser } from '$app/environment';
+
 /** applies nested properties in operand to target
  * overwrites existing target properties
  * does not mutate target
@@ -61,4 +63,16 @@ export function rangeAroundCenter(center: number, width: number, max?: number) {
 
 	const length = end - start + 1;
 	return Array.from({ length: length }, (_, index) => start + index);
+}
+
+export function loadFromLocalstorage(key: string): string | null {
+	if (browser) {
+		return localStorage?.getItem('mpdb' + key);
+	}
+	return null;
+}
+export function setLocalstorage(key: string, value: any) {
+	if (browser) {
+		localStorage.setItem('mpdb' + key, JSON.stringify(value));
+	}
 }

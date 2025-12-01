@@ -1,9 +1,10 @@
 import type { PaginatedResults } from '$lib/models/paginated-results';
 import type { Photo } from '$lib/models/photo';
 import { MEDIAPATH, type SizeEnum } from '$lib/models/settings';
-import { dateTimeReviver } from '$lib/utils';
+import { dateTimeReviver, loadFromLocalstorage, setLocalstorage } from '$lib/utils';
 import { derived, writable, type Writable } from 'svelte/store';
 import { createFetcher, createStore, fetchApi } from './common-store';
+import { browser } from '$app/environment';
 
 async function getPhotos(page: number, pagesize: number): Promise<PaginatedResults<Photo> | null> {
 	if (page < 1) {
@@ -21,7 +22,9 @@ async function getPhotos(page: number, pagesize: number): Promise<PaginatedResul
 }
 
 const itemList = writable([] as Photo[]);
-const numPerPage = writable(9);
+const initialNumPerPage = loadFromLocalstorage('numPerPage') || '10';
+const numPerPage = writable(parseInt(initialNumPerPage));
+numPerPage.subscribe((n) => setLocalstorage('numPerPage', n));
 const currentPage = writable(0);
 const totalItems = writable(null as null | number);
 const changes = derived([currentPage, numPerPage], ([CurrentPage, NumPerPage]) => {

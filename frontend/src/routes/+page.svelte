@@ -13,6 +13,7 @@
 	let currentPhotoIndex = $state(-1);
 	let selectedPhotos: number[] = $state([]);
 	let page = $state($currentPage);
+
 	$effect(() => {
 		if (page !== $currentPage) {
 			currentPage.set(page);
@@ -22,6 +23,9 @@
 	function setLastPage(total_count: number | null, limit: number) {
 		if (total_count && limit > 0) {
 			last = Math.ceil(total_count / limit);
+			if (page > last) {
+				page = last;
+			}
 		}
 	}
 	totalItems.subscribe((TOTAL) => setLastPage(TOTAL, $numPerPage));
@@ -37,8 +41,9 @@
 		console.log('handlePrev');
 		event.preventDefault();
 		if (currentPhotoIndex < 1) {
-			if ($currentPage > 1) {
-				currentPage.update((CP) => CP - 1);
+			if (page > 1) {
+				console.log('prev page');
+				page = page - 1;
 				currentPhotoIndex = $items.length - 1;
 			} else {
 				currentPhotoIndex = 0;
@@ -51,13 +56,22 @@
 	function handleNext(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
 		if (currentPhotoIndex >= $items.length - 1) {
 			// need a new page
-			if (!last || last > $currentPage) {
-				currentPage.update((CP) => CP + 1);
+			if (!last || last > page) {
+				page = page + 1;
 				currentPhotoIndex = 0;
 			}
 		} else {
 			currentPhotoIndex = currentPhotoIndex + 1;
 		}
+	}
+
+	function handleLimitChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
+		const x = parseInt(event.currentTarget.value);
+		numPerPage.set(x);
+	}
+
+	function handleEditClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
+		throw new Error('Function not implemented.');
 	}
 </script>
 
@@ -88,29 +102,51 @@
 <dialog bind:this={dialog} closedby="any">
 	{#if currentPhotoIndex >= 0}
 		{@const photo = $items[currentPhotoIndex]}
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title">
-					{photo.date_taken.toLocaleDateString()}
-					{photo.filename}
-				</h5>
-				<button class="btn-close" aria-label="Close" onclick={() => dialog.close()}></button>
+		{#if photo}
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">
+						{photo.date_taken.toLocaleDateString()}
+						{photo.filename}
+					</h5>
+					<button class="btn-close" aria-label="Close" onclick={() => dialog.close()}></button>
+				</div>
+				<div class="modal-body mb-2 d-flex justify-content-center">
+					<PhotoViewer {photo} />
+				</div>
+				<div class="modal-footer justify-content-between">
+					<button type="button" class="btn btn-primary" onclick={handlePrev}>Prev</button>
+					<button>Edit</button>
+					<button type="button" class="btn btn-primary" onclick={handleNext}>Next</button>
+				</div>
 			</div>
-			<div class="modal-body mb-2 d-flex justify-content-center">
-				<PhotoViewer {photo} />
-			</div>
-			<div class="modal-footer justify-content-between">
-				<button type="button" class="btn btn-primary" onclick={handlePrev}>Prev</button>
-				<button>Edit</button>
-				<button type="button" class="btn btn-primary" onclick={handleNext}>Next</button>
-			</div>
-		</div>
+		{/if}
 	{/if}
 </dialog>
-<div style="position:sticky; bottom:.25rem; clear: both;">
-	<Pagination {last} bind:page />
+<div style="clear: both;position:sticky;bottom:4px" class="row g-3">
+	<div class="col-auto">
+		<Pagination {last} bind:page />
+	</div>
+	<div class="col-auto">
+		<div class="input-group">
+			<span class="input-group-text"> Show </span>
+			<select name="nmn" value={$numPerPage} onchange={handleLimitChange} class="form-select">
+				{#each [10, 20, 50, 100] as val}
+					<option>{val}</option>
+				{/each}
+			</select>
+		</div>
+	</div>
+	{#if selectedPhotos.length}
+		<div class="col-auto">
+			<button class="btn btn-primary" onclick={handleEditClick}>
+				Edit
+				{selectedPhotos.length}
+			</button>
+		</div>
+	{/if}
 </div>
-<DebugPanel value={{ photos: $items }} />
+<DebugPanel value={{ currentPage: $currentPage, photos: $items }} />
 
 <style>
 	dialog {
@@ -126,17 +162,7 @@
 
 	/* Styles for the backdrop */
 	dialog::backdrop {
-		/* Change the background color from the default low-opacity black */
 		background-color: rgba(0, 0, 100, 0.7);
-
-		/* Use gradients, images, etc. */
-		/* background-image: linear-gradient(45deg, magenta, dodgerblue); */
-
-		/* You can also add blur effects to the content behind the dialog */
-		/* Note: Browser support for backdrop-filter is good, but check if needed */
-		backdrop-filter: blur(5px);
-
-		/* Add transitions/animations */
-		/* transition: background-color 0.3s ease-in-out; */
+		backdrop-filter: blur(3px);
 	}
 </style>
