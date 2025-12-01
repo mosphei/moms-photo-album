@@ -18,8 +18,9 @@ class PersonCreate(BaseModel):
 # Schema for a single image (used for reading data)
 class PhotoSchema(BaseModel):
     id: int
-    file_path: str
+    filename: str
     date_taken: datetime
+    date_uploaded: datetime
     description: Optional[str] = None
     # Nested Pydantic model to list people in the image
     people: List[PersonSchema] = []
@@ -31,8 +32,10 @@ class PhotoSchema(BaseModel):
 class PhotoCreate(BaseModel):
     user_id: int
     file_path: str
+    filename: str
     date_taken: datetime | None = None
     hash: str
+    md5sum: str
 
 class UserCreate(BaseModel):
     username: str

@@ -18,9 +18,7 @@ export async function getPhotos(page: number, pagesize: number): Promise<Paginat
 	return result;
 }
 
-export function photoPath(size: SizeEnum, photo_id: number, filename?: string) {
-	if (!filename) {
-		filename = `${photo_id}_${size}.jpg`;
-	}
-	return `${MEDIAPATH}/${size}/${photo_id}/${filename}`;
+export function photoPath(size: SizeEnum, photo: Photo) {
+	const filename = photo.filename || `${photo.id}_${size}.jpg`;
+	return `${MEDIAPATH}/${size}/${photo.id}/${filename}`;
 }

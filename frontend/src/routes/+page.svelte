@@ -5,7 +5,6 @@
 	import { onMount, tick } from 'svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import Thumbnail from './Thumbnail.svelte';
-	import { clickOutside } from '$lib/click-outside';
 
 	let dialog: HTMLDialogElement;
 	let photos: Photo[] = $state([]);
@@ -38,29 +37,59 @@
 		selectedPhotoIndex = photos.findIndex((p) => p.id === photo.id);
 		dialog.showModal();
 	}
+
+	function handlePrev(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
+		console.log('handlePrev');
+		event.preventDefault();
+		if (selectedPhotoIndex < 1) {
+			if (page > 1) {
+				page = page - 1;
+				selectedPhotoIndex = photos.length - 1;
+			} else {
+				selectedPhotoIndex = 0;
+			}
+		} else {
+			selectedPhotoIndex = selectedPhotoIndex - 1;
+		}
+	}
+
+	function handleNext(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
+		if (selectedPhotoIndex >= photos.length - 1) {
+			page = page + 1;
+			selectedPhotoIndex = 0;
+		} else {
+			selectedPhotoIndex = selectedPhotoIndex + 1;
+		}
+	}
 </script>
 
 {#each photos as photo}
 	<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
 {/each}
-<dialog bind:this={dialog} onclick={(e) => dialog.close()}>
+<dialog bind:this={dialog} closedby="any">
 	{#if selectedPhotoIndex >= 0}
 		{@const photo = photos[selectedPhotoIndex]}
-		<div class="modal-dialog" onclick={(e) => e.preventDefault()}>
+		<div class="modal-content">
 			<div class="modal-header">
 				<h5 class="modal-title">
 					{photo.date_taken.toLocaleDateString()}
-					{photo.file_path}
+					{photo.filename}
 				</h5>
-				<button type="button" class="btn-close" aria-label="Close"></button>
+				<button class="btn-close" aria-label="Close" onclick={() => dialog.close()}></button>
 			</div>
-			<div class="modal-body mb-2">
-				<img src={photoPath('m', photo.id)} alt={photo.file_path} />
+			<div class="modal-body mb-2 d-flex justify-content-center">
+				<div style="width:100%;height:100%">
+					<img
+						src={photoPath('m', photo)}
+						alt={photo.filename}
+						style="object-fit: contain;object-position:center;width:100%;height:100%"
+					/>
+				</div>
 			</div>
 			<div class="modal-footer">
-				<button class="btn btn-primary">Prev</button>
+				<button type="button" class="btn btn-primary" onclick={handlePrev}>Prev</button>
 				<span style="flex:1"></span>
-				<button class="btn btn-primary">Next</button>
+				<button type="button" class="btn btn-primary" onclick={handleNext}>Next</button>
 			</div>
 		</div>
 	{/if}
@@ -71,27 +100,15 @@
 <DebugPanel value={photos} />
 
 <style>
-	.modal-dialog {
-		padding: 0.25rem;
-	}
-	.modal-header {
-		border-bottom: solid 1px;
-		border-color: var(--mo-border-color);
-		margin-bottom: 0.25rem;
-		padding-bottom: 0.25rem;
-	}
-	.modal-footer {
-		border-top: solid 1px;
-		border-color: var(--mo-border-color);
-		margin-top: 0.25rem;
-		padding-top: 0.25rem;
-	}
-	/* Styles for the dialog itself (optional) */
 	dialog {
-		border: none;
-		border-radius: 10px;
-		padding: 0px;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		width: 80%;
+		border-radius: 6px;
+		padding: 0.5rem;
+		--mo-modal-header-border-color: var(--mo-primary);
+		--mo-modal-header-border-width: 1px;
+		--mo-heading-color: var(--mo-primary);
+		--mo-modal-header-padding: 0.25rem;
+		--mo-modal-padding: 0.25rem;
 	}
 
 	/* Styles for the backdrop */

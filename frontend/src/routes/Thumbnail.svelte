@@ -6,8 +6,6 @@
 		onclick?: (e: MouseEvent) => void;
 	}
 	let { photo, onclick = undefined }: IProps = $props();
-	const parts = photo.file_path.split('/');
-	const filename = parts.pop();
 	let img: HTMLImageElement;
 
 	function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLAnchorElement }) {
@@ -15,13 +13,8 @@
 	}
 </script>
 
-<a class="card" href={filename} {onclick}>
-	<img
-		class="card-img-top"
-		bind:this={img}
-		alt={filename}
-		src={photoPath('t', photo.id, filename)}
-	/>
+<a class="card" href={photo.filename} {onclick}>
+	<img class="card-img-top" bind:this={img} alt={photo.filename} src={photoPath('t', photo)} />
 	<div class="card-body">
 		{photo.date_taken.toLocaleDateString()}
 		{photo.description}

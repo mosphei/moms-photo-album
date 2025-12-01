@@ -15,21 +15,21 @@
 </script>
 
 <ul class="pagination">
-	<li class="page-item">
+	<li class={{ 'page-item': true, disabled: page <= 1 }}>
 		<button onclick={() => (page = 1)} class="page-link" disabled={page <= 1}>First</button>
 	</li>
-	<li class="page-item">
+	<li class={{ 'page-item': true, disabled: page <= 1 }}>
 		<button onclick={() => (page = page - 1)} class="page-link" disabled={page <= 1}
 			>Previous</button
 		>
 	</li>
 	{#each pages as p}
 		{@const active = p == page}
-		<li class={{ active, 'page-item': true }}>
+		<li class={{ active, 'page-item': true, disabled: active }}>
 			<button class="page-link" onclick={() => (page = p)} disabled={active}>{p}</button>
 		</li>
 	{/each}
-	<li class="page-item">
+	<li class={{ 'page-item': true, disabled: last && page >= last }}>
 		<button
 			class="page-link"
 			onclick={() => (page = page + 1)}
@@ -37,8 +37,8 @@
 		>
 	</li>
 	{#if last}
-		<li class="page-item">
-			<button class="page-link" onclick={() => (page = last)} disabled={page == last}>Last</button>
+		<li class={{ 'page-item': true, disabled: page >= last }}>
+			<button class="page-link" onclick={() => (page = last)} disabled={page >= last}>Last</button>
 		</li>
 	{/if}
 </ul>

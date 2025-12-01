@@ -1,3 +1,4 @@
+import hashlib
 import os
 from typing import List
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -31,8 +32,9 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
     # get the image hash
     try:
         image_bytes = await file.read()
+        md5sum = hashlib.md5(image_bytes).hexdigest()
         img = Image.open(io.BytesIO(image_bytes))
-
+        img_hash = imagehash.average_hash(img)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
@@ -41,13 +43,11 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
 
     # try and get exact matches
     dupe:PhotoModel|None = None
-    img_hash = None
-    try:
-        img_hash = imagehash.average_hash(img)
-        dupe = db.query(PhotoModel).filter(PhotoModel.hash == str(img_hash)).first()
-    except Exception as e:
-        """unable to get hash"""
-        pass
+    dupe = db.query(PhotoModel).filter(and_(
+        PhotoModel.hash == str(img_hash),
+        PhotoModel.md5sum == md5sum
+        )).first()
+    
     if not dupe is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, # 409
@@ -57,7 +57,6 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         parent_dirs = os.path.join(f"{date_taken.year:04d}", f"{date_taken.month:02d}")
     else:
         " split it on the filename to avoid directories with too many files"
-        
         left_12 = base_name[:12]
         chunks_list = textwrap.wrap(left_12, 4)
         parent_dirs = os.path.join(*chunks_list)
@@ -88,7 +87,13 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
     
     # Save image metadata in MySQL database
     file_path = os.path.join(parent_dirs,filename)
-    db_image = PhotoModel(user_id=current_user.id, file_path=file_path, date_taken=date_taken, hash=img_hash)
+    db_image = PhotoModel(
+        user_id=current_user.id, 
+        file_path=file_path, 
+        filename=file.filename,
+        date_taken=date_taken, 
+        hash=img_hash,
+        md5sum=md5sum)
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
@@ -130,23 +135,14 @@ async def get_image_file(size: str, image_id: int, filename: str, db: Session = 
 # Get a list of images
 @router.get("/", response_model=PaginatedResults[PhotoSchema])
 async def get_image_list(q: str | None = None, offset: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    
-# Define the filter condition
     user_filter_condition = PhotoModel.user_id == current_user.id
 
-    # 1. Statement to fetch the *paginated items* (with filter, limit, and offset)
     items_stmt = select(PhotoModel).where(user_filter_condition).offset(offset).limit(limit)
     photo_list = db.execute(items_stmt).scalars().all()
 
-    # 2. Statement to fetch the *total count* (with the same filter, but no limit/offset)
-    # We use func.count() to generate a COUNT(*) in SQL.
-    # .select_from(PhotoModel) can be useful for clarity or complex joins.
     count_stmt = select(func.count()).select_from(PhotoModel).where(user_filter_condition)
-    
-    # Execute the count statement to get a single scalar result (the total number)
     total_count = db.execute(count_stmt).scalar()
     
-    # 3. Create the Pydantic response instance
     paginated_response = PaginatedResults[PhotoSchema](
         items=photo_list,
         total_count=total_count,

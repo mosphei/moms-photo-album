@@ -26,11 +26,14 @@ class PhotoModel(Base):
     user_id = Column(Integer,ForeignKey('users.id'))
     # We typically store the photo file path/URL, not the photo data itself, in the DB
     file_path: Mapped[str] = mapped_column(String(255), nullable=False)
+    # original filename
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     date_taken = Column(DateTime, nullable=True, index=True)
     date_uploaded = Column(DateTime, default=datetime.utcnow)
     # hashing for find duplicate photos
     hash = Column(String(64), nullable=True)
+    md5sum = Column(String(32), nullable=True)
     # Establishes the link to the Person model via the association table
     people = relationship("Person", secondary=photo_person_association, back_populates="photos")
 
