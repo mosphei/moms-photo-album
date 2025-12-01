@@ -5,14 +5,17 @@
 	import { onMount, tick } from 'svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import Thumbnail from './Thumbnail.svelte';
+	import PhotoViewer from './PhotoViewer.svelte';
+	import { IMAGESIZES } from '$lib/models/settings';
 
 	let dialog: HTMLDialogElement;
 	let photos: Photo[] = $state([]);
 	let page = $state(1);
-	let limit = $state(5);
+	let limit = $state(10);
 	let total = $state(-1);
 	let last: number | undefined = $state(undefined);
-	let selectedPhotoIndex = $state(-1);
+	let currentPhotoIndex = $state(-1);
+	let selectedPhotos: number[] = $state([]);
 
 	async function loadPhotos() {
 		const results = await getPhotos(page, limit);
@@ -34,41 +37,51 @@
 
 	function handleThumbnailClick(e: MouseEvent, photo: Photo): void {
 		e.preventDefault();
-		selectedPhotoIndex = photos.findIndex((p) => p.id === photo.id);
+		currentPhotoIndex = photos.findIndex((p) => p.id === photo.id);
 		dialog.showModal();
 	}
 
 	function handlePrev(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
 		console.log('handlePrev');
 		event.preventDefault();
-		if (selectedPhotoIndex < 1) {
+		if (currentPhotoIndex < 1) {
 			if (page > 1) {
 				page = page - 1;
-				selectedPhotoIndex = photos.length - 1;
+				currentPhotoIndex = photos.length - 1;
 			} else {
-				selectedPhotoIndex = 0;
+				currentPhotoIndex = 0;
 			}
 		} else {
-			selectedPhotoIndex = selectedPhotoIndex - 1;
+			currentPhotoIndex = currentPhotoIndex - 1;
 		}
 	}
 
 	function handleNext(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
-		if (selectedPhotoIndex >= photos.length - 1) {
-			page = page + 1;
-			selectedPhotoIndex = 0;
+		if (currentPhotoIndex >= photos.length - 1) {
+			if (!last || last > page) {
+				page = page + 1;
+				currentPhotoIndex = 0;
+			}
 		} else {
-			selectedPhotoIndex = selectedPhotoIndex + 1;
+			currentPhotoIndex = currentPhotoIndex + 1;
 		}
 	}
 </script>
 
 {#each photos as photo}
-	<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
+	<div style="float:left; position:relative; padding:.5rem">
+		<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
+		<input
+			type="checkbox"
+			style="position:absolute;top:1rem;left:1rem"
+			bind:group={selectedPhotos}
+			value={photo.id}
+		/>
+	</div>
 {/each}
 <dialog bind:this={dialog} closedby="any">
-	{#if selectedPhotoIndex >= 0}
-		{@const photo = photos[selectedPhotoIndex]}
+	{#if currentPhotoIndex >= 0}
+		{@const photo = photos[currentPhotoIndex]}
 		<div class="modal-content">
 			<div class="modal-header">
 				<h5 class="modal-title">
@@ -78,17 +91,11 @@
 				<button class="btn-close" aria-label="Close" onclick={() => dialog.close()}></button>
 			</div>
 			<div class="modal-body mb-2 d-flex justify-content-center">
-				<div style="width:100%;height:100%">
-					<img
-						src={photoPath('m', photo)}
-						alt={photo.filename}
-						style="object-fit: contain;object-position:center;width:100%;height:100%"
-					/>
-				</div>
+				<PhotoViewer {photo} />
 			</div>
-			<div class="modal-footer">
+			<div class="modal-footer justify-content-between">
 				<button type="button" class="btn btn-primary" onclick={handlePrev}>Prev</button>
-				<span style="flex:1"></span>
+				<button>Edit</button>
 				<button type="button" class="btn btn-primary" onclick={handleNext}>Next</button>
 			</div>
 		</div>
@@ -101,7 +108,7 @@
 
 <style>
 	dialog {
-		width: 80%;
+		/*width: 80%;*/
 		border-radius: 6px;
 		padding: 0.5rem;
 		--mo-modal-header-border-color: var(--mo-primary);
