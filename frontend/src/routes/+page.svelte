@@ -1,43 +1,35 @@
 <script lang="ts">
 	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import type { Photo } from '$lib/models/photo';
-	import { getPhotos, photoPath } from '$lib/stores/photo-store';
+	import { photopages } from '$lib/stores/photo-store';
 	import { onMount, tick } from 'svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import Thumbnail from './Thumbnail.svelte';
 	import PhotoViewer from './PhotoViewer.svelte';
-	import { IMAGESIZES } from '$lib/models/settings';
 
 	let dialog: HTMLDialogElement;
-	let photos: Photo[] = $state([]);
-	let page = $state(1);
-	let limit = $state(10);
-	let total = $state(-1);
+	let { currentPage, numPerPage, items, totalItems } = photopages;
 	let last: number | undefined = $state(undefined);
 	let currentPhotoIndex = $state(-1);
 	let selectedPhotos: number[] = $state([]);
+	let page = $state($currentPage);
+	$effect(() => {
+		if (page !== $currentPage) {
+			currentPage.set(page);
+		}
+	});
 
-	async function loadPhotos() {
-		const results = await getPhotos(page, limit);
-		photos = results.items;
-		total = results.total_count;
-		if (total) {
-			last = Math.ceil(total / limit);
+	function setLastPage(total_count: number | null, limit: number) {
+		if (total_count && limit > 0) {
+			last = Math.ceil(total_count / limit);
 		}
 	}
-
-	$effect(() => {
-		console.log(`page=${page}`);
-		loadPhotos();
-	});
-
-	onMount(() => {
-		loadPhotos();
-	});
+	totalItems.subscribe((TOTAL) => setLastPage(TOTAL, $numPerPage));
+	numPerPage.subscribe((LIMIT) => setLastPage($totalItems, LIMIT));
 
 	function handleThumbnailClick(e: MouseEvent, photo: Photo): void {
 		e.preventDefault();
-		currentPhotoIndex = photos.findIndex((p) => p.id === photo.id);
+		currentPhotoIndex = $items.findIndex((p) => p.id === photo.id);
 		dialog.showModal();
 	}
 
@@ -45,9 +37,9 @@
 		console.log('handlePrev');
 		event.preventDefault();
 		if (currentPhotoIndex < 1) {
-			if (page > 1) {
-				page = page - 1;
-				currentPhotoIndex = photos.length - 1;
+			if ($currentPage > 1) {
+				currentPage.update((CP) => CP - 1);
+				currentPhotoIndex = $items.length - 1;
 			} else {
 				currentPhotoIndex = 0;
 			}
@@ -57,9 +49,10 @@
 	}
 
 	function handleNext(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
-		if (currentPhotoIndex >= photos.length - 1) {
-			if (!last || last > page) {
-				page = page + 1;
+		if (currentPhotoIndex >= $items.length - 1) {
+			// need a new page
+			if (!last || last > $currentPage) {
+				currentPage.update((CP) => CP + 1);
 				currentPhotoIndex = 0;
 			}
 		} else {
@@ -68,7 +61,20 @@
 	}
 </script>
 
-{#each photos as photo}
+<div id="filters" class="row g-3 align-items-center">
+	<div class="col-auto">Filter/Sort</div>
+	<!-- by date -->
+	<div class="col-auto">
+		<div class="input-group">
+			<select class="form-select" style="width: 7rem;">
+				<option>After:</option>
+				<option>Before:</option>
+			</select>
+			<input type="date" class="form-control" style="width: 10rem;" />
+		</div>
+	</div>
+</div>
+{#each $items as photo}
 	<div style="float:left; position:relative; padding:.5rem">
 		<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
 		<input
@@ -81,7 +87,7 @@
 {/each}
 <dialog bind:this={dialog} closedby="any">
 	{#if currentPhotoIndex >= 0}
-		{@const photo = photos[currentPhotoIndex]}
+		{@const photo = $items[currentPhotoIndex]}
 		<div class="modal-content">
 			<div class="modal-header">
 				<h5 class="modal-title">
@@ -104,7 +110,7 @@
 <div style="position:sticky; bottom:.25rem; clear: both;">
 	<Pagination {last} bind:page />
 </div>
-<DebugPanel value={photos} />
+<DebugPanel value={{ photos: $items }} />
 
 <style>
 	dialog {

@@ -1,7 +1,6 @@
 <script lang="ts">
-	import type { Photo } from '$lib/models/photo';
+	import { photoPath, type Photo } from '$lib/models/photo';
 	import { IMAGESIZES, type SizeEnum } from '$lib/models/settings';
-	import { photoPath } from '$lib/stores/photo-store';
 
 	interface iProps {
 		size?: SizeEnum;
