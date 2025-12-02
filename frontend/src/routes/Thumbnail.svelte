@@ -1,6 +1,5 @@
 <script lang="ts">
-	import type { Photo } from '$lib/models/photo';
-	import { photoPath } from '$lib/stores/photo-store';
+	import { photoPath, type Photo } from '$lib/models/photo';
 	interface IProps {
 		photo: Photo;
 		onclick?: (e: MouseEvent) => void;

@@ -1,6 +1,7 @@
+from datetime import datetime
 import hashlib
 import os
-from typing import List
+from typing import List, Literal
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -134,13 +135,31 @@ async def get_image_file(size: str, image_id: int, filename: str, db: Session = 
 
 # Get a list of images
 @router.get("/", response_model=PaginatedResults[PhotoSchema])
-async def get_image_list(q: str | None = None, offset: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    user_filter_condition = PhotoModel.user_id == current_user.id
+async def get_image_list(offset: int = 0, limit: int = 100, sortBy:Literal["date_taken", "date_uploaded", "date_updated"] = "date_taken", sortDescending: bool = False, after: datetime  | None = None, before: datetime  | None = None, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    filter_conditions = [PhotoModel.user_id == current_user.id]
+    if after is not None:
+        filter_conditions.append(PhotoModel.date_taken >= after)
+    if before is not None:
+        filter_conditions.append(PhotoModel.date_taken < before)
 
-    items_stmt = select(PhotoModel).where(user_filter_condition).offset(offset).limit(limit)
+    #sort
+    sort = PhotoModel.date_taken.asc()
+    if sortBy == "date_taken":
+        if sortDescending:
+            sort = PhotoModel.date_taken.desc()
+    if sortBy == "date_updated":
+        sort = PhotoModel.date_updated.asc() 
+        if sortDescending:
+            sort = PhotoModel.date_taken.desc()
+    if sortBy == "date_uploaded":
+        sort = PhotoModel.date_uploaded.asc()
+        if sortDescending:
+            sort = PhotoModel.date_uploaded.desc()
+
+    items_stmt = select(PhotoModel).where(and_(*filter_conditions)).offset(offset).limit(limit).order_by(sort)
     photo_list = db.execute(items_stmt).scalars().all()
 
-    count_stmt = select(func.count()).select_from(PhotoModel).where(user_filter_condition)
+    count_stmt = select(func.count()).select_from(PhotoModel).where(and_(*filter_conditions))
     total_count = db.execute(count_stmt).scalar()
     
     paginated_response = PaginatedResults[PhotoSchema](

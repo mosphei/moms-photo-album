@@ -1,43 +1,38 @@
 <script lang="ts">
 	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import type { Photo } from '$lib/models/photo';
-	import { getPhotos, photoPath } from '$lib/stores/photo-store';
-	import { onMount, tick } from 'svelte';
+	import { photopages } from '$lib/stores/photo-store';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import Thumbnail from './Thumbnail.svelte';
 	import PhotoViewer from './PhotoViewer.svelte';
-	import { IMAGESIZES } from '$lib/models/settings';
 
 	let dialog: HTMLDialogElement;
-	let photos: Photo[] = $state([]);
-	let page = $state(1);
-	let limit = $state(10);
-	let total = $state(-1);
+	let { currentPage, numPerPage, items, totalItems, criteria } = photopages;
 	let last: number | undefined = $state(undefined);
 	let currentPhotoIndex = $state(-1);
 	let selectedPhotos: number[] = $state([]);
-
-	async function loadPhotos() {
-		const results = await getPhotos(page, limit);
-		photos = results.items;
-		total = results.total_count;
-		if (total) {
-			last = Math.ceil(total / limit);
-		}
-	}
+	let page = $state($currentPage);
 
 	$effect(() => {
-		console.log(`page=${page}`);
-		loadPhotos();
+		if (page !== $currentPage) {
+			currentPage.set(page);
+		}
 	});
 
-	onMount(() => {
-		loadPhotos();
-	});
+	function setLastPage(total_count: number | null, limit: number) {
+		if (total_count && limit > 0) {
+			last = Math.ceil(total_count / limit);
+			if (page > last) {
+				page = last;
+			}
+		}
+	}
+	totalItems.subscribe((TOTAL) => setLastPage(TOTAL, $numPerPage));
+	numPerPage.subscribe((LIMIT) => setLastPage($totalItems, LIMIT));
 
 	function handleThumbnailClick(e: MouseEvent, photo: Photo): void {
 		e.preventDefault();
-		currentPhotoIndex = photos.findIndex((p) => p.id === photo.id);
+		currentPhotoIndex = $items.findIndex((p) => p.id === photo.id);
 		dialog.showModal();
 	}
 
@@ -46,8 +41,9 @@
 		event.preventDefault();
 		if (currentPhotoIndex < 1) {
 			if (page > 1) {
+				console.log('prev page');
 				page = page - 1;
-				currentPhotoIndex = photos.length - 1;
+				currentPhotoIndex = $items.length - 1;
 			} else {
 				currentPhotoIndex = 0;
 			}
@@ -57,7 +53,8 @@
 	}
 
 	function handleNext(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
-		if (currentPhotoIndex >= photos.length - 1) {
+		if (currentPhotoIndex >= $items.length - 1) {
+			// need a new page
 			if (!last || last > page) {
 				page = page + 1;
 				currentPhotoIndex = 0;
@@ -66,9 +63,157 @@
 			currentPhotoIndex = currentPhotoIndex + 1;
 		}
 	}
+
+	function handleLimitChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
+		const x = parseInt(event.currentTarget.value);
+		numPerPage.set(x);
+	}
+
+	function handleEditClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
+		throw new Error('Function not implemented.');
+	}
+
+	let afterDate = $state($criteria.after ? $criteria.after.toLocaleDateString() : undefined);
+	let beforeDate = $state($criteria.before ? $criteria.before.toLocaleDateString() : undefined);
+	function handleAfterChange(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
+		const newval = event.currentTarget.value;
+		// console.log('handleAfterChange', newval);
+		if (newval) {
+			criteria.update((C) => {
+				C.after = new Date(newval);
+				return C;
+			});
+		} else {
+			criteria.update((C) => {
+				C.after = undefined;
+				return C;
+			});
+		}
+	}
+	function handleBeforeChange(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
+		const newval = event.currentTarget.value;
+		console.log('handleBeforeChange', newval);
+		if (newval) {
+			criteria.update((C) => {
+				C.before = new Date(newval);
+				return C;
+			});
+		} else {
+			criteria.update((C) => {
+				C.before = undefined;
+				return C;
+			});
+		}
+	}
+	// sorting
+	const sort_options = [
+		'Oldest',
+		'Newest',
+		'First Uploaded',
+		'Last Uploaded',
+		'Recently Edited',
+		'Unedited'
+	] as const;
+	function getInitialSort(
+		sortBy: string | undefined,
+		descending: boolean | undefined
+	): (typeof sort_options)[number] {
+		switch (sortBy) {
+			case 'date_taken':
+				if (descending) {
+					return 'Newest';
+				}
+				return 'Oldest';
+			case 'date_uploaded':
+				if (descending) {
+					return 'Last Uploaded';
+				}
+				return 'First Uploaded';
+			case 'date_updated':
+				if (descending) {
+					return 'Recently Edited';
+				}
+				return 'Unedited';
+		}
+		// default sort
+		return 'Oldest';
+	}
+	let sortInput = $state(getInitialSort($criteria.sortBy, $criteria.sortDescending));
+
+	function handleSortChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
+		const newval = event.currentTarget.value as (typeof sort_options)[number];
+		// console.log('handleSortChange', newval);
+		criteria.update((C) => {
+			switch (newval) {
+				case 'Oldest':
+					C.sortBy = 'date_taken';
+					C.sortDescending = false;
+					break;
+				case 'Newest':
+					C.sortBy = 'date_taken';
+					C.sortDescending = true;
+					break;
+				case 'First Uploaded':
+					C.sortBy = 'date_uploaded';
+					C.sortDescending = false;
+					break;
+				case 'Last Uploaded':
+					C.sortBy = 'date_uploaded';
+					C.sortDescending = true;
+					break;
+				case 'Recently Edited':
+					C.sortBy = 'date_updated';
+					C.sortDescending = true;
+					break;
+				case 'Unedited':
+					C.sortBy = 'date_updated';
+					C.sortDescending = false;
+			}
+			console.log('criteria', C);
+			return C;
+		});
+	}
 </script>
 
-{#each photos as photo}
+<div id="filters" class="row g-3 align-items-center mb-2">
+	<div class="col-auto">Filter/Sort</div>
+	<!-- by date -->
+	<div class="col-auto">
+		<div class="input-group">
+			<span class="input-group-text">After:</span>
+			<input
+				type="date"
+				class="form-control"
+				style="width: 10rem;"
+				bind:value={afterDate}
+				onchange={handleAfterChange}
+			/>
+			<span class="input-group-text">Before:</span>
+			<input
+				type="date"
+				class="form-control"
+				style="width: 10rem;"
+				bind:value={beforeDate}
+				onchange={handleBeforeChange}
+			/>
+		</div>
+	</div>
+	<!-- sort -->
+	<div class="col-auto">
+		<div class="input-group">
+			<span class="input-group-text">Sort:</span>
+			<select name="sort" bind:value={sortInput} class="form-select" onchange={handleSortChange}>
+				{#each sort_options as opt}
+					<option>{opt}</option>
+				{/each}
+			</select>
+		</div>
+	</div>
+</div>
+{#if $items.length == 0}
+	<div class="alert alert-info m-3">No photos found.</div>
+{/if}
+{#each $items as photo}
 	<div style="float:left; position:relative; padding:.5rem">
 		<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
 		<input
@@ -81,30 +226,52 @@
 {/each}
 <dialog bind:this={dialog} closedby="any">
 	{#if currentPhotoIndex >= 0}
-		{@const photo = photos[currentPhotoIndex]}
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title">
-					{photo.date_taken.toLocaleDateString()}
-					{photo.filename}
-				</h5>
-				<button class="btn-close" aria-label="Close" onclick={() => dialog.close()}></button>
+		{@const photo = $items[currentPhotoIndex]}
+		{#if photo}
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">
+						{photo.date_taken.toLocaleDateString()}
+						{photo.filename}
+					</h5>
+					<button class="btn-close" aria-label="Close" onclick={() => dialog.close()}></button>
+				</div>
+				<div class="modal-body mb-2 d-flex justify-content-center">
+					<PhotoViewer {photo} />
+				</div>
+				<div class="modal-footer justify-content-between">
+					<button type="button" class="btn btn-primary" onclick={handlePrev}>Prev</button>
+					<button>Edit</button>
+					<button type="button" class="btn btn-primary" onclick={handleNext}>Next</button>
+				</div>
 			</div>
-			<div class="modal-body mb-2 d-flex justify-content-center">
-				<PhotoViewer {photo} />
-			</div>
-			<div class="modal-footer justify-content-between">
-				<button type="button" class="btn btn-primary" onclick={handlePrev}>Prev</button>
-				<button>Edit</button>
-				<button type="button" class="btn btn-primary" onclick={handleNext}>Next</button>
-			</div>
-		</div>
+		{/if}
 	{/if}
 </dialog>
-<div style="position:sticky; bottom:.25rem; clear: both;">
-	<Pagination {last} bind:page />
+<div style="clear: both;position:sticky;bottom:4px" class="row g-3">
+	<div class="col-auto">
+		<Pagination {last} bind:page />
+	</div>
+	<div class="col-auto">
+		<div class="input-group">
+			<span class="input-group-text"> Show </span>
+			<select name="nmn" value={$numPerPage} onchange={handleLimitChange} class="form-select">
+				{#each [10, 20, 50, 100] as val}
+					<option>{val}</option>
+				{/each}
+			</select>
+		</div>
+	</div>
+	{#if selectedPhotos.length}
+		<div class="col-auto">
+			<button class="btn btn-primary" onclick={handleEditClick}>
+				Edit
+				{selectedPhotos.length}
+			</button>
+		</div>
+	{/if}
 </div>
-<DebugPanel value={photos} />
+<DebugPanel value={{ currentPage: $currentPage, photos: $items }} />
 
 <style>
 	dialog {
@@ -120,17 +287,7 @@
 
 	/* Styles for the backdrop */
 	dialog::backdrop {
-		/* Change the background color from the default low-opacity black */
 		background-color: rgba(0, 0, 100, 0.7);
-
-		/* Use gradients, images, etc. */
-		/* background-image: linear-gradient(45deg, magenta, dodgerblue); */
-
-		/* You can also add blur effects to the content behind the dialog */
-		/* Note: Browser support for backdrop-filter is good, but check if needed */
-		backdrop-filter: blur(5px);
-
-		/* Add transitions/animations */
-		/* transition: background-color 0.3s ease-in-out; */
+		backdrop-filter: blur(3px);
 	}
 </style>

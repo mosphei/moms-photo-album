@@ -31,6 +31,7 @@ class PhotoModel(Base):
     description = Column(Text, nullable=True)
     date_taken = Column(DateTime, nullable=True, index=True)
     date_uploaded = Column(DateTime, default=datetime.utcnow)
+    date_updated = Column(DateTime, nullable=True)
     # hashing for find duplicate photos
     hash = Column(String(64), nullable=True)
     md5sum = Column(String(32), nullable=True)

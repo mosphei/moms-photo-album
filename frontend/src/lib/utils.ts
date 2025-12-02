@@ -1,3 +1,5 @@
+import { browser } from '$app/environment';
+
 /** applies nested properties in operand to target
  * overwrites existing target properties
  * does not mutate target
@@ -61,4 +63,33 @@ export function rangeAroundCenter(center: number, width: number, max?: number) {
 
 	const length = end - start + 1;
 	return Array.from({ length: length }, (_, index) => start + index);
+}
+
+export function loadFromLocalstorage(key: string): string | null {
+	if (browser) {
+		return localStorage?.getItem('mpdb' + key);
+	}
+	return null;
+}
+export function setLocalstorage(key: string, value: any) {
+	if (browser) {
+		localStorage.setItem('mpdb' + key, JSON.stringify(value));
+	}
+}
+
+export function dateFormat(date: Date) {
+	function toTime() {
+		return date.toTimeString().substring(0, 5);
+	}
+	function toDate() {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}
+	return {
+		toSQLTime: toTime,
+		toSQLDate: toDate,
+		toSQLDateTime: () => `${toDate()} ${toTime()}`
+	};
 }
