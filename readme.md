@@ -3,7 +3,8 @@ It's really a database of photos to be searchable by date, person,
 as well as keywords.
 
 ## TODO
-- rotate cached images according to metadata
+- ~rotate cached images according to metadata~
+- ~filter and sort~
 - add an edit page/component
 - implement search
 

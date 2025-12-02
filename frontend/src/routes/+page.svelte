@@ -173,6 +173,24 @@
 			return C;
 		});
 	}
+
+	// allow for shift-click to select multiple items
+	function handleCheckboxClick(event: MouseEvent & { currentTarget: EventTarget & HTMLInputElement; }) {
+		console.log('handleCheckboxClick!', event);
+		if (event.shiftKey) {
+			if (selectedPhotos.length > 0) {
+				const last_chosen = selectedPhotos[selectedPhotos.length - 1];
+				const idx = $items.findIndex(p=>p.id === last_chosen);
+				const currentId = parseInt(event.currentTarget.value);
+				const currentIdx = $items.findIndex(p=>p.id===currentId);
+				const [first, last] = currentIdx>idx?[idx,currentIdx]:[currentIdx,idx];
+				selectedPhotos = Array.from(new Set([
+					...selectedPhotos,
+					...$items.filter((itm,i)=>i>=first && i<=last).map(itm=>itm.id),
+				]));
+			}
+		}
+	}
 </script>
 
 <div id="filters" class="row g-3 align-items-center mb-2">
@@ -221,6 +239,7 @@
 			style="position:absolute;top:1rem;left:1rem"
 			bind:group={selectedPhotos}
 			value={photo.id}
+			onclick={handleCheckboxClick}
 		/>
 	</div>
 {/each}
@@ -267,6 +286,9 @@
 			<button class="btn btn-primary" onclick={handleEditClick}>
 				Edit
 				{selectedPhotos.length}
+			</button>
+			<button class="btn btn-secondary" onclick={()=>selectedPhotos = []}>
+				Deselect
 			</button>
 		</div>
 	{/if}
