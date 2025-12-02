@@ -5,6 +5,9 @@
 	import Pagination from '$lib/components/Pagination.svelte';
 	import Thumbnail from './Thumbnail.svelte';
 	import PhotoViewer from './PhotoViewer.svelte';
+	import PhotoEditor from './PhotoEditor.svelte';
+	import { tick, type Snippet, type SvelteComponent } from 'svelte';
+	import Modal from '$lib/components/Modal.svelte';
 
 	let dialog: HTMLDialogElement;
 	let { currentPage, numPerPage, items, totalItems, criteria } = photopages;
@@ -33,7 +36,7 @@
 	function handleThumbnailClick(e: MouseEvent, photo: Photo): void {
 		e.preventDefault();
 		currentPhotoIndex = $items.findIndex((p) => p.id === photo.id);
-		dialog.showModal();
+		tick().then((_) => viewdialog!.open());
 	}
 
 	function handlePrev(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
@@ -67,10 +70,6 @@
 	function handleLimitChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
 		const x = parseInt(event.currentTarget.value);
 		numPerPage.set(x);
-	}
-
-	function handleEditClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
-		throw new Error('Function not implemented.');
 	}
 
 	let afterDate = $state($criteria.after ? $criteria.after.toLocaleDateString() : undefined);
@@ -175,22 +174,33 @@
 	}
 
 	// allow for shift-click to select multiple items
-	function handleCheckboxClick(event: MouseEvent & { currentTarget: EventTarget & HTMLInputElement; }) {
+	function handleCheckboxClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLInputElement }
+	) {
 		console.log('handleCheckboxClick!', event);
 		if (event.shiftKey) {
 			if (selectedPhotos.length > 0) {
 				const last_chosen = selectedPhotos[selectedPhotos.length - 1];
-				const idx = $items.findIndex(p=>p.id === last_chosen);
+				const idx = $items.findIndex((p) => p.id === last_chosen);
 				const currentId = parseInt(event.currentTarget.value);
-				const currentIdx = $items.findIndex(p=>p.id===currentId);
-				const [first, last] = currentIdx>idx?[idx,currentIdx]:[currentIdx,idx];
-				selectedPhotos = Array.from(new Set([
-					...selectedPhotos,
-					...$items.filter((itm,i)=>i>=first && i<=last).map(itm=>itm.id),
-				]));
+				const currentIdx = $items.findIndex((p) => p.id === currentId);
+				const [first, last] = currentIdx > idx ? [idx, currentIdx] : [currentIdx, idx];
+				selectedPhotos = Array.from(
+					new Set([
+						...selectedPhotos,
+						...$items.filter((itm, i) => i >= first && i <= last).map((itm) => itm.id)
+					])
+				);
 			}
 		}
 	}
+	let editDialog: Modal | undefined = $state(undefined);
+	let photosToEdit: Photo[] = $state([]);
+	function handleEditClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
+		photosToEdit = $items.filter((p) => selectedPhotos.includes(p.id));
+		editDialog!.open();
+	}
+	let viewdialog: Modal | undefined = $state(undefined);
 </script>
 
 <div id="filters" class="row g-3 align-items-center mb-2">
@@ -243,30 +253,25 @@
 		/>
 	</div>
 {/each}
-<dialog bind:this={dialog} closedby="any">
-	{#if currentPhotoIndex >= 0}
-		{@const photo = $items[currentPhotoIndex]}
-		{#if photo}
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title">
-						{photo.date_taken.toLocaleDateString()}
-						{photo.filename}
-					</h5>
-					<button class="btn-close" aria-label="Close" onclick={() => dialog.close()}></button>
-				</div>
-				<div class="modal-body mb-2 d-flex justify-content-center">
-					<PhotoViewer {photo} />
-				</div>
-				<div class="modal-footer justify-content-between">
-					<button type="button" class="btn btn-primary" onclick={handlePrev}>Prev</button>
-					<button>Edit</button>
-					<button type="button" class="btn btn-primary" onclick={handleNext}>Next</button>
-				</div>
+{#if currentPhotoIndex >= 0}
+	{@const photo = $items[currentPhotoIndex]}
+	{#if photo}
+		<Modal bind:this={viewdialog}>
+			{#snippet title()}
+				{photo.date_taken.toLocaleDateString()}
+				{photo.filename}
+			{/snippet}
+			<div class="d-flex justify-content-center">
+				<PhotoViewer {photo} />
 			</div>
-		{/if}
+			{#snippet footer()}
+				<button type="button" class="btn btn-primary" onclick={handlePrev}>Prev</button>
+				<button>Edit</button>
+				<button type="button" class="btn btn-primary" onclick={handleNext}>Next</button>
+			{/snippet}
+		</Modal>
 	{/if}
-</dialog>
+{/if}
 <div style="clear: both;position:sticky;bottom:4px" class="row g-3">
 	<div class="col-auto">
 		<Pagination {last} bind:page />
@@ -287,29 +292,18 @@
 				Edit
 				{selectedPhotos.length}
 			</button>
-			<button class="btn btn-secondary" onclick={()=>selectedPhotos = []}>
-				Deselect
-			</button>
+			<button class="btn btn-secondary" onclick={() => (selectedPhotos = [])}> Deselect </button>
 		</div>
 	{/if}
 </div>
+<Modal bind:this={editDialog} closedBy="closerequest">
+	{#snippet title()}
+		Edit {photosToEdit.length} Item{photosToEdit.length == 1 ? '' : 's'}
+	{/snippet}
+	<PhotoEditor
+		photos={photosToEdit}
+		onsave={() => editDialog?.close()}
+		oncancel={() => editDialog?.close()}
+	/>
+</Modal>
 <DebugPanel value={{ currentPage: $currentPage, photos: $items }} />
-
-<style>
-	dialog {
-		/*width: 80%;*/
-		border-radius: 6px;
-		padding: 0.5rem;
-		--mo-modal-header-border-color: var(--mo-primary);
-		--mo-modal-header-border-width: 1px;
-		--mo-heading-color: var(--mo-primary);
-		--mo-modal-header-padding: 0.25rem;
-		--mo-modal-padding: 0.25rem;
-	}
-
-	/* Styles for the backdrop */
-	dialog::backdrop {
-		background-color: rgba(0, 0, 100, 0.7);
-		backdrop-filter: blur(3px);
-	}
-</style>
