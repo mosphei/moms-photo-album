@@ -2,13 +2,12 @@
 	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import type { Photo } from '$lib/models/photo';
 	import { photopages } from '$lib/stores/photo-store';
-	import { onMount, tick } from 'svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import Thumbnail from './Thumbnail.svelte';
 	import PhotoViewer from './PhotoViewer.svelte';
 
 	let dialog: HTMLDialogElement;
-	let { currentPage, numPerPage, items, totalItems } = photopages;
+	let { currentPage, numPerPage, items, totalItems, criteria } = photopages;
 	let last: number | undefined = $state(undefined);
 	let currentPhotoIndex = $state(-1);
 	let selectedPhotos: number[] = $state([]);
@@ -73,21 +72,147 @@
 	function handleEditClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
 		throw new Error('Function not implemented.');
 	}
+
+	let afterDate = $state($criteria.after ? $criteria.after.toLocaleDateString() : undefined);
+	let beforeDate = $state($criteria.before ? $criteria.before.toLocaleDateString() : undefined);
+	function handleAfterChange(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
+		const newval = event.currentTarget.value;
+		// console.log('handleAfterChange', newval);
+		if (newval) {
+			criteria.update((C) => {
+				C.after = new Date(newval);
+				return C;
+			});
+		} else {
+			criteria.update((C) => {
+				C.after = undefined;
+				return C;
+			});
+		}
+	}
+	function handleBeforeChange(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
+		const newval = event.currentTarget.value;
+		console.log('handleBeforeChange', newval);
+		if (newval) {
+			criteria.update((C) => {
+				C.before = new Date(newval);
+				return C;
+			});
+		} else {
+			criteria.update((C) => {
+				C.before = undefined;
+				return C;
+			});
+		}
+	}
+	// sorting
+	const sort_options = [
+		'Oldest',
+		'Newest',
+		'First Uploaded',
+		'Last Uploaded',
+		'Recently Edited',
+		'Unedited'
+	] as const;
+	function getInitialSort(
+		sortBy: string | undefined,
+		descending: boolean | undefined
+	): (typeof sort_options)[number] {
+		switch (sortBy) {
+			case 'date_taken':
+				if (descending) {
+					return 'Newest';
+				}
+				return 'Oldest';
+			case 'date_uploaded':
+				if (descending) {
+					return 'Last Uploaded';
+				}
+				return 'First Uploaded';
+			case 'date_updated':
+				if (descending) {
+					return 'Recently Edited';
+				}
+				return 'Unedited';
+		}
+		// default sort
+		return 'Oldest';
+	}
+	let sortInput = $state(getInitialSort($criteria.sortBy, $criteria.sortDescending));
+
+	function handleSortChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
+		const newval = event.currentTarget.value as (typeof sort_options)[number];
+		// console.log('handleSortChange', newval);
+		criteria.update((C) => {
+			switch (newval) {
+				case 'Oldest':
+					C.sortBy = 'date_taken';
+					C.sortDescending = false;
+					break;
+				case 'Newest':
+					C.sortBy = 'date_taken';
+					C.sortDescending = true;
+					break;
+				case 'First Uploaded':
+					C.sortBy = 'date_uploaded';
+					C.sortDescending = false;
+					break;
+				case 'Last Uploaded':
+					C.sortBy = 'date_uploaded';
+					C.sortDescending = true;
+					break;
+				case 'Recently Edited':
+					C.sortBy = 'date_updated';
+					C.sortDescending = true;
+					break;
+				case 'Unedited':
+					C.sortBy = 'date_updated';
+					C.sortDescending = false;
+			}
+			console.log('criteria', C);
+			return C;
+		});
+	}
 </script>
 
-<div id="filters" class="row g-3 align-items-center">
+<div id="filters" class="row g-3 align-items-center mb-2">
 	<div class="col-auto">Filter/Sort</div>
 	<!-- by date -->
 	<div class="col-auto">
 		<div class="input-group">
-			<select class="form-select" style="width: 7rem;">
-				<option>After:</option>
-				<option>Before:</option>
+			<span class="input-group-text">After:</span>
+			<input
+				type="date"
+				class="form-control"
+				style="width: 10rem;"
+				bind:value={afterDate}
+				onchange={handleAfterChange}
+			/>
+			<span class="input-group-text">Before:</span>
+			<input
+				type="date"
+				class="form-control"
+				style="width: 10rem;"
+				bind:value={beforeDate}
+				onchange={handleBeforeChange}
+			/>
+		</div>
+	</div>
+	<!-- sort -->
+	<div class="col-auto">
+		<div class="input-group">
+			<span class="input-group-text">Sort:</span>
+			<select name="sort" bind:value={sortInput} class="form-select" onchange={handleSortChange}>
+				{#each sort_options as opt}
+					<option>{opt}</option>
+				{/each}
 			</select>
-			<input type="date" class="form-control" style="width: 10rem;" />
 		</div>
 	</div>
 </div>
+{#if $items.length == 0}
+	<div class="alert alert-info m-3">No photos found.</div>
+{/if}
 {#each $items as photo}
 	<div style="float:left; position:relative; padding:.5rem">
 		<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />

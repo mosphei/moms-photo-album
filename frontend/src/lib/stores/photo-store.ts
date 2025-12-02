@@ -1,17 +1,45 @@
 import type { PaginatedResults } from '$lib/models/paginated-results';
 import type { Photo } from '$lib/models/photo';
-import { MEDIAPATH, type SizeEnum } from '$lib/models/settings';
-import { dateTimeReviver, loadFromLocalstorage, setLocalstorage } from '$lib/utils';
+import { dateFormat, dateTimeReviver, loadFromLocalstorage, setLocalstorage } from '$lib/utils';
 import { derived, writable, type Writable } from 'svelte/store';
-import { createFetcher, createStore, fetchApi } from './common-store';
-import { browser } from '$app/environment';
+import { fetchApi } from './common-store';
 
-async function getPhotos(page: number, pagesize: number): Promise<PaginatedResults<Photo> | null> {
+interface ICriteria {
+	after?: Date;
+	before?: Date;
+	sortBy: 'date_taken' | 'date_uploaded' | 'date_updated';
+	sortDescending: boolean;
+}
+
+async function getPhotos(
+	page: number,
+	pagesize: number,
+	criteria: ICriteria | undefined = undefined
+): Promise<PaginatedResults<Photo> | null> {
 	if (page < 1) {
 		return null;
 	}
 	const offset = (page - 1) * pagesize;
-	const url = `/api/images/?offset=${offset}&limit=${pagesize}`;
+
+	const urlParams = new URLSearchParams({
+		offset: `${offset}`,
+		limit: `${pagesize}`
+	});
+	if (criteria) {
+		if (criteria.after) {
+			urlParams.append('after', dateFormat(criteria.after).toSQLDate());
+		}
+		if (criteria.before) {
+			urlParams.append('before', dateFormat(criteria.before).toSQLDate());
+		}
+		if (criteria.sortBy) {
+			urlParams.append('sortBy', criteria.sortBy);
+		}
+		if (criteria.sortDescending) {
+			urlParams.append('sortDescending', criteria.sortDescending ? 'True' : 'False');
+		}
+	}
+	const url = `/api/images/?${urlParams.toString()}`;
 	console.log(`url:${url}`);
 	const response = await fetchApi(url, {
 		headers: { accept: 'application/json' }
@@ -27,23 +55,36 @@ const numPerPage = writable(parseInt(initialNumPerPage));
 numPerPage.subscribe((n) => setLocalstorage('numPerPage', n));
 const currentPage = writable(0);
 const totalItems = writable(null as null | number);
-const changes = derived([currentPage, numPerPage], ([CurrentPage, NumPerPage]) => {
-	getPhotos(CurrentPage, NumPerPage).then((result) => {
-		if (result) {
-			itemList.set(result.items);
-			if (result.total_count) {
-				totalItems.set(result.total_count);
-			}
+const criteria = writable({ sortBy: 'date_taken', sortDescending: false } as ICriteria);
+//debounce?
+let fetchTimerId: any = undefined;
+const changes = derived(
+	[currentPage, numPerPage, criteria],
+	([CurrentPage, NumPerPage, Criteria]) => {
+		if (fetchTimerId) {
+			console.log('debounce');
+			clearTimeout(fetchTimerId);
 		}
-	}); // catch?
-});
+		fetchTimerId = setTimeout(() => {
+			getPhotos(CurrentPage, NumPerPage, Criteria).then((result) => {
+				if (result) {
+					itemList.set(result.items);
+					if (result.total_count) {
+						totalItems.set(result.total_count);
+					}
+				}
+			}); // catch?
+		}, 50);
+	}
+);
 changes.subscribe((x) => console.log('changed'));
 
 export const photopages = {
 	items: derived(itemList, (_) => _),
 	numPerPage,
 	currentPage,
-	totalItems
+	totalItems,
+	criteria
 };
 // load the first page
 currentPage.set(1);
