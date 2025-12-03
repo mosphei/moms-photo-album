@@ -98,5 +98,9 @@ export async function savePhoto(id: number, photo: Partial<Photo>) {
 			'Content-Type': 'application/json'
 		}
 	});
+	if (response) {
+		const result: Photo = JSON.parse(response, dateTimeReviver);
+		itemList.update(items=>items.map(itm=>itm.id === result.id ? result : itm));
+	}
 	console.log('save response', response);
 }
