@@ -89,17 +89,14 @@ export const photopages = {
 // load the first page
 currentPage.set(1);
 
-export async function savePhoto(photo: Photo) {
+export async function savePhoto(id: number, photo: Partial<Photo>) {
 	console.log('saving photo', photo);
-	return new Promise((resolve,reject) => {
-		setTimeout(()=>{
-			if (Math.random() < .5) {
-				console.log('resolve');
-				resolve(true);
-			} else {
-				console.log('reject');
-				reject(false);
-			}
-		},Math.floor(Math.random()*3000));
+	const response = await fetchApi(`/api/images/${id}`, {
+		method: 'PATCH',
+		body: JSON.stringify(photo),
+		headers: {
+			'Content-Type': 'application/json'
+		}
 	});
+	console.log('save response', response);
 }

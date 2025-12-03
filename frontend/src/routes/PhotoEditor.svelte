@@ -2,9 +2,7 @@
 	import { errorAlert, progressAlert } from '$lib/alerts';
 	import { photoPath, type Photo } from '$lib/models/photo';
 	import { savePhoto } from '$lib/stores/photo-store';
-	import { deepMerge } from '$lib/utils';
 	import { SvelteToast } from '@zerodevx/svelte-toast';
-	import Thumbnail from './Thumbnail.svelte';
 
 	interface IProps {
 		photos: Photo[];
@@ -16,52 +14,74 @@
 	function handleCancel(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
 		if (oncancel) oncancel();
 	}
-    let busy = $state(false);
-    async function applyAndSave(photo:Photo, changes:any) {
-        const msg =  progressAlert(`saving ${photo.filename}`,{target:'savetoast'});
-        try {
-            await savePhoto(deepMerge(photo,changes));
-        } catch (err) {
-            errorAlert(`unable to save ${photo.filename}`,err, 15000,{target:'savetoast'});
-            throw err;
-        } finally {
-            msg.dismiss();
-        }
-    }
+	let busy = $state(false);
+
+	async function applyAndSave(photo: Photo, changes: Partial<Photo>) {
+		const msg = progressAlert(`saving ${photo.filename}`, { target: 'savetoast' });
+		try {
+			if ('date_taken' in changes) {
+				// apply the original hh:mm:ss so they sort correctly later
+				changes.date_taken?.setHours(photo.date_taken.getHours());
+				changes.date_taken?.setMinutes(photo.date_taken.getMinutes());
+				changes.date_taken?.setSeconds(photo.date_taken.getSeconds());
+			}
+			await savePhoto(photo.id, changes);
+		} catch (err) {
+			errorAlert(`unable to save ${photo.filename}`, err, 15000, { target: 'savetoast' });
+			throw err;
+		} finally {
+			msg.dismiss();
+		}
+	}
 	function save(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
-        const updates:Record<string,any> = {};
-        fieldsToUpdate.forEach(f=>{
-            switch (f) {
-                case 'date_taken':
-                    updates[f]=date_taken;
-                    break;
-                case 'description':
-                    updates[f]=description;
-                    break;
-            }
-        });
-        Promise.all(photos.map(photo=>applyAndSave(photo,updates)))
-        .then(()=>{
-            if (onsave) onsave();
-        })
-        .catch(err=>{
-            console.log('err', err);
-            busy=false
-        });
+		const updates: Partial<Photo> = {};
+		fieldsToUpdate.forEach((f) => {
+			switch (f) {
+				case 'date_taken':
+					updates[f] = new Date(date_taken + 'T00:00:00');
+					break;
+				case 'description':
+					updates[f] = description;
+					break;
+			}
+		});
+		Promise.all(photos.map((photo) => applyAndSave(photo, updates)))
+			.then(() => {
+				if (onsave) onsave();
+			})
+			.catch((err) => {
+				console.log('err', err);
+				busy = false;
+			});
 	}
 
 	// get initial values
-	const originalValues = {
-		date_taken: photos
-			.map((p) => (p.date_taken ? p.date_taken.toLocaleDateString() : null))
-			.filter((v) => v)
-			.join(','),
-		description: photos
-			.map((p) => (p.description ? `${p.description.substring(0, 10)}...` : null))
-			.filter((v) => v)
-			.join(','),
-		people: photos.flatMap((p) => p.people).join(',')
-	};
+	let originalValues: any = $state({});
+	function dedupeAndJoin(values: string[]): string {
+		return Array.from(
+			new Set(
+				values.map((v) => {
+					if (!v) {
+						return 'empty';
+					}
+					if (v.length > 10) {
+						return `${v.substring(0, 7)}...`;
+					}
+					return v;
+				})
+			)
+		).join(',');
+	}
+	$effect(() => {
+		console.log('parsing photos', photos);
+		originalValues = {
+			date_taken: dedupeAndJoin(
+				photos.map((p) => (p.date_taken ? p.date_taken.toLocaleDateString() : ''))
+			),
+			description: dedupeAndJoin(photos.map((p) => p.description || '')),
+			people: dedupeAndJoin(photos.flatMap((p) => p.people))
+		};
+	});
 	let fieldsToUpdate: string[] = $state([]);
 	let date_taken = $state('');
 	let description = $state('');
@@ -122,6 +142,7 @@
 				bind:value={description}
 				name="description"
 				id="description"
+				placeholder={originalValues.description}
 				disabled={!fieldsToUpdate.includes('description')}
 			/>
 		</div>
@@ -173,7 +194,9 @@
 	</div>
 </div>
 <div class="d-flex justify-content-between">
-	<button class="btn btn-primary" onclick={save} disabled={busy}>Save</button>
+	<button class="btn btn-primary" onclick={save} disabled={busy || !fieldsToUpdate.length}
+		>Save</button
+	>
 	<button class="btn btn-secondary" type="button" onclick={handleCancel}>Cancel</button>
 </div>
-<SvelteToast target='savetoast' />
+<SvelteToast target="savetoast" />

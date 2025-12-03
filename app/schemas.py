@@ -37,6 +37,15 @@ class PhotoCreate(BaseModel):
     hash: str
     md5sum: str
 
+# Schema for partial updates
+class PhotoUpdate(BaseModel):
+    filename: Optional[str] = None
+    date_taken: Optional[datetime] = None
+    date_uploaded: Optional[datetime] = None
+    description: Optional[str] = None
+    # Nested Pydantic model to list people in the image
+    people: Optional[List[PersonSchema]] = None
+
 class UserCreate(BaseModel):
     username: str
     password: str

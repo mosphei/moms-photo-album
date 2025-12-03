@@ -16,9 +16,9 @@ from ..pagination import PaginatedResults
 from .get_date import get_image_date
 from ..settings import IMAGESIZES, MEDIADIR
 from ..security import get_current_user
-from ..schemas import PhotoSchema
+from ..schemas import PhotoSchema, PhotoUpdate
 from ..models import PhotoModel, User
-from ..database import get_db
+from ..database import get_db, update_data_in_db
 
 router = APIRouter(
     prefix="/api/images",  # Sets the base path for all routes in this file
@@ -107,6 +107,17 @@ async def get_image(image_id: int, db: Session = Depends(get_db), current_user:U
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     return image
+
+# Update the image metadata
+@router.patch("/{image_id}", response_model=PhotoSchema)
+async def update_image(image_id: int, photo: PhotoUpdate,  db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    db_image = db.query(PhotoModel).filter(and_(PhotoModel.id == image_id, PhotoModel.user_id == current_user.id)).first()
+    if db_image is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    update_data_in_db(db_image, photo)
+    db.commit()
+    db.refresh(db_image)
+    return db_image
 
 # Retrieve image file endpoint
 @router.get("/files/{size}/{image_id}/{filename}")

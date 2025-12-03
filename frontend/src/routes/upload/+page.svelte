@@ -64,17 +64,13 @@
 			status: 'uploading',
 			percentComplete: 0
 		});
-		uploadFileWithProgress(
-			'/api/images/upload/',
-			fileEntry.file,
-			(percentComplete) => {
-				//console.log(`${fileEntry.filename}=${percentComplete}`);
-				fileEntry.uploadStatus.set({
-					status: 'uploading',
-					percentComplete
-				});
-			}
-		)
+		uploadFileWithProgress('/api/images/upload/', fileEntry.file, (percentComplete) => {
+			//console.log(`${fileEntry.filename}=${percentComplete}`);
+			fileEntry.uploadStatus.set({
+				status: 'uploading',
+				percentComplete
+			});
+		})
 			.then((result) => {
 				fileEntry.uploadStatus.set({
 					status: 'complete',
