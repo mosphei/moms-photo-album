@@ -88,3 +88,18 @@ export const photopages = {
 };
 // load the first page
 currentPage.set(1);
+
+export async function savePhoto(photo: Photo) {
+	console.log('saving photo', photo);
+	return new Promise((resolve,reject) => {
+		setTimeout(()=>{
+			if (Math.random() < .5) {
+				console.log('resolve');
+				resolve(true);
+			} else {
+				console.log('reject');
+				reject(false);
+			}
+		},Math.floor(Math.random()*3000));
+	});
+}

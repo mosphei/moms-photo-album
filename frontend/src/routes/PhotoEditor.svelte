@@ -1,5 +1,9 @@
 <script lang="ts">
+	import { errorAlert, progressAlert } from '$lib/alerts';
 	import { photoPath, type Photo } from '$lib/models/photo';
+	import { savePhoto } from '$lib/stores/photo-store';
+	import { deepMerge } from '$lib/utils';
+	import { SvelteToast } from '@zerodevx/svelte-toast';
 	import Thumbnail from './Thumbnail.svelte';
 
 	interface IProps {
@@ -12,11 +16,40 @@
 	function handleCancel(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
 		if (oncancel) oncancel();
 	}
-
+    let busy = $state(false);
+    async function applyAndSave(photo:Photo, changes:any) {
+        const msg =  progressAlert(`saving ${photo.filename}`,{target:'savetoast'});
+        try {
+            await savePhoto(deepMerge(photo,changes));
+        } catch (err) {
+            errorAlert(`unable to save ${photo.filename}`,err, 15000,{target:'savetoast'});
+            throw err;
+        } finally {
+            msg.dismiss();
+        }
+    }
 	function save(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
-		if (onsave) onsave();
-		throw new Error('Function not implemented.');
+        const updates:Record<string,any> = {};
+        fieldsToUpdate.forEach(f=>{
+            switch (f) {
+                case 'date_taken':
+                    updates[f]=date_taken;
+                    break;
+                case 'description':
+                    updates[f]=description;
+                    break;
+            }
+        });
+        Promise.all(photos.map(photo=>applyAndSave(photo,updates)))
+        .then(()=>{
+            if (onsave) onsave();
+        })
+        .catch(err=>{
+            console.log('err', err);
+            busy=false
+        });
 	}
+
 	// get initial values
 	const originalValues = {
 		date_taken: photos
@@ -140,6 +173,7 @@
 	</div>
 </div>
 <div class="d-flex justify-content-between">
-	<button class="btn btn-primary" onclick={save}>Save</button>
+	<button class="btn btn-primary" onclick={save} disabled={busy}>Save</button>
 	<button class="btn btn-secondary" type="button" onclick={handleCancel}>Cancel</button>
 </div>
+<SvelteToast target='savetoast' />
