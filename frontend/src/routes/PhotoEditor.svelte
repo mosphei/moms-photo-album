@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { errorAlert, progressAlert } from '$lib/alerts';
+	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import type { PaginatedResults } from '$lib/models/paginated-results';
 	import type { Person } from '$lib/models/person';
 	import { photoPath, type Photo } from '$lib/models/photo';
 	import { fetchApi } from '$lib/stores/common-store';
 	import { savePhoto } from '$lib/stores/photo-store';
 	import { SvelteToast } from '@zerodevx/svelte-toast';
+	import { onMount } from 'svelte';
 
 	interface IProps {
 		photos: Photo[];
@@ -15,6 +17,8 @@
 	let { photos, onsave, oncancel }: IProps = $props();
 
 	function handleCancel(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
+		searchText = '';
+		fieldsToUpdate = [];
 		if (oncancel) oncancel();
 	}
 	let busy = $state(false);
@@ -52,6 +56,8 @@
 		});
 		Promise.all(photos.map((photo) => applyAndSave(photo, updates)))
 			.then(() => {
+				searchText = '';
+				fieldsToUpdate = [];
 				if (onsave) onsave();
 			})
 			.catch((err) => {
@@ -78,13 +84,13 @@
 		).join(',');
 	}
 	$effect(() => {
-		console.log('parsing photos', photos);
+		// parse original values
 		originalValues = {
 			date_taken: dedupeAndJoin(
 				photos.map((p) => (p.date_taken ? p.date_taken.toLocaleDateString() : ''))
 			),
 			description: dedupeAndJoin(photos.map((p) => p.description || '')),
-			people: dedupeAndJoin(photos.flatMap((p) => p.people))
+			people: dedupeAndJoin(photos.flatMap((p) => p.people).map((p) => p.name))
 		};
 	});
 	let fieldsToUpdate: string[] = $state([]);
@@ -144,6 +150,9 @@
 			errorAlert('unable to create person ' + name, err, 15000, { target: 'savetoast' });
 		}
 	}
+	onMount(() => {
+		console.log('PhotoEditor.svelte');
+	});
 </script>
 
 <div class="d-flex flex-wrap mb-2" style="width: 100%;--rotation:{rotate}deg;">
@@ -209,7 +218,7 @@
 		<!-- people chooser-->
 		<label for="people">People</label>
 		<div class={{ ppl: true, enabled: fieldsToUpdate.includes('people') }}>
-			<div>
+			<div style="padding: .375rem .75rem;">
 				<input
 					type="checkbox"
 					value="people"
@@ -217,46 +226,56 @@
 					class="form-check-input"
 				/>
 			</div>
-			{#each people as p}
-				<div class="chip">
-					{p.name}
-					<button class="" onclick={() => removePerson(p)} aria-label="remove" type="button">
-						{#if fieldsToUpdate.includes('people')}
-							<span class="bi bi-trash"></span>
-						{/if}
-					</button>
-				</div>
-			{/each}
-			<div style="width: 20rem;">
-				<input
-					type="text"
-					class="form-control"
-					name="description"
-					id="description"
-					disabled={!fieldsToUpdate.includes('people')}
-					oninput={handlePeopleSearch}
-					bind:this={personInput}
-					placeholder="name search"
-					bind:value={searchText}
-					autocomplete="off"
-				/>
-				{#if searchText.length}
-					<ul class="dropdown-menu show">
-						{#each searchResult as p}
+			{#if fieldsToUpdate.includes('people')}
+				{#each people as p}
+					<div class="chip">
+						{p.name}
+						<button class="" onclick={() => removePerson(p)} aria-label="remove" type="button">
+							{#if fieldsToUpdate.includes('people')}
+								<span class="bi bi-trash"></span>
+							{/if}
+						</button>
+					</div>
+				{/each}
+				<div style="width: 20rem;">
+					<input
+						type="text"
+						class="form-control"
+						name="description"
+						id="description"
+						disabled={!fieldsToUpdate.includes('people')}
+						oninput={handlePeopleSearch}
+						bind:this={personInput}
+						placeholder={fieldsToUpdate.includes('people') ? 'name search' : originalValues.people}
+						bind:value={searchText}
+						autocomplete="off"
+					/>
+					{#if searchText.length}
+						<ul class="dropdown-menu show">
+							{#each searchResult as p}
+								<li>
+									<button class="dropdown-item" type="button" onclick={() => addPerson(p)}>
+										{p.name}
+									</button>
+								</li>
+							{/each}
 							<li>
-								<button class="dropdown-item" type="button" onclick={() => addPerson(p)}>
-									{p.name}
+								<button
+									class="dropdown-item"
+									type="button"
+									onclick={() => createPerson(searchText)}
+								>
+									New Person '{searchText}'
 								</button>
 							</li>
-						{/each}
-						<li>
-							<button class="dropdown-item" type="button" onclick={() => createPerson(searchText)}>
-								New Person '{searchText}'
-							</button>
-						</li>
-					</ul>
-				{/if}
-			</div>
+						</ul>
+					{/if}
+				</div>
+			{:else}
+				<div style="width: 20rem;">
+					<input class="form-control" type="text" disabled placeholder={originalValues.people} />
+				</div>
+			{/if}
 		</div>
 	</div>
 	<div class="mb-2">
@@ -292,6 +311,7 @@
 	<button class="btn btn-secondary" type="button" onclick={handleCancel}>Cancel</button>
 </div>
 <SvelteToast target="savetoast" />
+<DebugPanel value={{ originalValues }} />
 
 <style>
 	.ppl {

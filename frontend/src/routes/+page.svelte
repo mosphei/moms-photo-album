@@ -296,6 +296,7 @@
 		</div>
 	{/if}
 </div>
+
 <Modal bind:this={editDialog} closedBy="closerequest">
 	{#snippet title()}
 		Edit {photosToEdit.length} Item{photosToEdit.length == 1 ? '' : 's'}
