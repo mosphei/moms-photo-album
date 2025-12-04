@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Text
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Table, Text
 from sqlalchemy.orm import relationship, declarative_base, Mapped, mapped_column
 
 Base = declarative_base()
@@ -13,10 +13,11 @@ photo_person_association = Table(
     Column('person_id', Integer, ForeignKey('people.id'), primary_key=True)
 )
 
-class Person(Base):
+class PersonModel(Base):
     __tablename__ = 'people'
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), index=True)
+    name = Column(String(255), index=True, nullable=False)
+    past_names = Column(String(255))
     # Establishes the link to the Photo model via the association table
     photos = relationship("PhotoModel", secondary=photo_person_association, back_populates="people")
 
@@ -36,13 +37,14 @@ class PhotoModel(Base):
     hash = Column(String(64), nullable=True)
     md5sum = Column(String(32), nullable=True)
     # Establishes the link to the Person model via the association table
-    people = relationship("Person", secondary=photo_person_association, back_populates="photos")
+    people = relationship("PersonModel", secondary=photo_person_association, back_populates="photos")
 
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     username = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
+    admin = (Column(Boolean, default=False))
     Column('person_id', Integer, ForeignKey('people.id'), primary_key=True)
 
 class UserSession(Base):
