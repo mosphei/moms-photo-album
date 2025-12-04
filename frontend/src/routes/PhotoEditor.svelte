@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { errorAlert, progressAlert } from '$lib/alerts';
+	import type { PaginatedResults } from '$lib/models/paginated-results';
+	import type { Person } from '$lib/models/person';
 	import { photoPath, type Photo } from '$lib/models/photo';
+	import { fetchApi } from '$lib/stores/common-store';
 	import { savePhoto } from '$lib/stores/photo-store';
 	import { SvelteToast } from '@zerodevx/svelte-toast';
 
@@ -43,6 +46,8 @@
 				case 'description':
 					updates[f] = description;
 					break;
+				case 'people':
+					updates[f] = people;
 			}
 		});
 		Promise.all(photos.map((photo) => applyAndSave(photo, updates)))
@@ -86,6 +91,59 @@
 	let date_taken = $state('');
 	let description = $state('');
 	let rotate = $state(0);
+
+	let people: Person[] = $state([]);
+	let personInput: HTMLInputElement;
+	let searchText = $state('');
+	let searchResult: Person[] = $state([]);
+	let searchTimer: any;
+	async function handlePeopleSearch(
+		event: Event & { currentTarget: EventTarget & HTMLInputElement }
+	) {
+		if (searchTimer) {
+			clearTimeout(searchTimer);
+		}
+		const q = event.currentTarget.value;
+		if (q) {
+			const params = new URLSearchParams({ q, limit: '10' });
+			const response = await fetchApi('/api/people/?' + params.toString());
+			console.log('search resp', response);
+			if (response) {
+				const result: PaginatedResults<Person> = JSON.parse(response);
+				searchResult = result.items;
+			}
+		}
+	}
+
+	function addPerson(p: Person): any {
+		const idx = people.findIndex((x) => x.id === p.id);
+		if (idx < 0) {
+			people = [...people, p];
+			searchResult = [];
+			searchText = '';
+			personInput.focus();
+		}
+	}
+
+	function removePerson(person: Person): any {
+		people = [...people.filter((p) => p.id != person.id)];
+	}
+
+	async function createPerson(name: string) {
+		try {
+			const response = await fetchApi('/api/people/new', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+			if (response) {
+				const result: Person = JSON.parse(response);
+				addPerson(result);
+			}
+		} catch (err) {
+			errorAlert('unable to create person ' + name, err, 15000, { target: 'savetoast' });
+		}
+	}
 </script>
 
 <div class="d-flex flex-wrap mb-2" style="width: 100%;--rotation:{rotate}deg;">
@@ -125,6 +183,7 @@
 		</div>
 	</div>
 	<div class="mb-2">
+		<!-- description -->
 		<label for="description">Description</label>
 		<div class="input-group">
 			<div class="input-group-text">
@@ -135,7 +194,6 @@
 					class="form-check-input"
 				/>
 			</div>
-
 			<input
 				type="text"
 				class="form-control"
@@ -148,9 +206,10 @@
 		</div>
 	</div>
 	<div class="mb-2">
+		<!-- people chooser-->
 		<label for="people">People</label>
-		<div class="input-group">
-			<div class="input-group-text">
+		<div class={{ ppl: true, enabled: fieldsToUpdate.includes('people') }}>
+			<div>
 				<input
 					type="checkbox"
 					value="people"
@@ -158,13 +217,46 @@
 					class="form-check-input"
 				/>
 			</div>
-			<input
-				type="text"
-				class="form-control"
-				name="description"
-				id="description"
-				disabled={!fieldsToUpdate.includes('people')}
-			/>
+			{#each people as p}
+				<div class="chip">
+					{p.name}
+					<button class="" onclick={() => removePerson(p)} aria-label="remove" type="button">
+						{#if fieldsToUpdate.includes('people')}
+							<span class="bi bi-trash"></span>
+						{/if}
+					</button>
+				</div>
+			{/each}
+			<div style="width: 20rem;">
+				<input
+					type="text"
+					class="form-control"
+					name="description"
+					id="description"
+					disabled={!fieldsToUpdate.includes('people')}
+					oninput={handlePeopleSearch}
+					bind:this={personInput}
+					placeholder="name search"
+					bind:value={searchText}
+					autocomplete="off"
+				/>
+				{#if searchText.length}
+					<ul class="dropdown-menu show">
+						{#each searchResult as p}
+							<li>
+								<button class="dropdown-item" type="button" onclick={() => addPerson(p)}>
+									{p.name}
+								</button>
+							</li>
+						{/each}
+						<li>
+							<button class="dropdown-item" type="button" onclick={() => createPerson(searchText)}>
+								New Person '{searchText}'
+							</button>
+						</li>
+					</ul>
+				{/if}
+			</div>
 		</div>
 	</div>
 	<div class="mb-2">
@@ -200,3 +292,26 @@
 	<button class="btn btn-secondary" type="button" onclick={handleCancel}>Cancel</button>
 </div>
 <SvelteToast target="savetoast" />
+
+<style>
+	.ppl {
+		border: solid 1px;
+		border-color: var(--mo-border-color, gray);
+		border-radius: var(--mo-border-radius, 4px);
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+	}
+	.chip {
+		margin: 0.25rem;
+		padding: 0.25rem;
+		background-color: var(--mo-secondary-bg-subtle);
+	}
+	.chip:hover {
+		background-color: var(--mo-secondary-bg);
+	}
+	.chip button {
+		border: none;
+		background: transparent;
+	}
+</style>

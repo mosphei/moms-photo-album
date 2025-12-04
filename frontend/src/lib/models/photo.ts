@@ -1,3 +1,4 @@
+import type { Person } from './person';
 import { type SizeEnum, MEDIAPATH } from './settings';
 
 export interface Photo {
@@ -5,7 +6,7 @@ export interface Photo {
 	filename: string;
 	description: string;
 	date_taken: Date;
-	people: string[];
+	people: Person[];
 }
 
 export function photoPath(size: SizeEnum, photo: Photo) {

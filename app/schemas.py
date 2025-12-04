@@ -6,7 +6,7 @@ from pydantic import BaseModel, HttpUrl
 class PersonSchema(BaseModel):
     id: int
     name: str
-    past_names: str
+    past_names: Optional[str] = None
 
     class Config:
         # Allows Pydantic to read ORM objects directly
