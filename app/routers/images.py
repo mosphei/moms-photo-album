@@ -109,37 +109,38 @@ async def get_image(image_id: int, db: Session = Depends(get_db), current_user:U
     return image
 
 # Update the image metadata
-@router.patch("/{image_id}", response_model=PhotoSchema)
-async def update_image(image_id: int, photo: PhotoUpdate,  db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    db_photo = db.query(PhotoModel).filter(and_(PhotoModel.id == image_id, PhotoModel.user_id == current_user.id)).first()
-    if db_photo is None:
-        raise HTTPException(status_code=404, detail="Item not found")
-    #dump the model
-    update_data = photo.model_dump(exclude_unset=True)
-    # print(f"update_data:{update_data}")
-    # handle people relationships
-    if "person_ids" in update_data and update_data["person_ids"] is not None:
-        person_ids_to_link = update_data["person_ids"]
-        print(f"person_ids: {person_ids_to_link}")
-        # Fetch all required person objects efficiently in one query
-        persons = db.query(PersonModel).filter(PersonModel.id.in_(person_ids_to_link)).all()
+@router.patch("/{photo_id}", response_model=PhotoSchema)
+async def update_image(photo_id: int, photo_update: PhotoUpdate,  db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    # Fetch the existing photo
+    photo = db.query(PhotoModel).filter(PhotoModel.id == photo_id).first()
+    
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    
+    # Update the fields if provided in the request body
+    if photo_update.filename is not None:
+        photo.filename = photo_update.filename
+    if photo_update.date_taken is not None:
+        photo.date_taken = photo_update.date_taken
+    if photo_update.date_uploaded is not None:
+        photo.date_uploaded = photo_update.date_uploaded
+    if photo_update.description is not None:
+        photo.description = photo_update.description
+    
+    # Update the people associated with the photo (if provided)
+    if photo_update.people is not None:
+        photo.people.clear()
+        for person in photo_update.people:
+            db_person = db.query(PersonModel).filter(PersonModel.id == person.id).first()
+            if db_person:
+                photo.people.append(db_person)
+            else:
+                raise HTTPException(status_code=404, detail=f"Person with id {person.id} not found")
 
-        # Check if all requested IDs were found to prevent linking errors
-        if len(persons) != len(person_ids_to_link):
-            # You might want more specific error handling here
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail="One or more Person IDs provided were invalid."
-            )
-
-        # Clear existing relationships and set the new ones
-        db_photo.people.clear()
-        db_photo.people.extend(persons)
-        
-    update_data_in_db(db_photo, photo)
-    db.commit()
-    db.refresh(db_photo)
-    return db_photo
+    # Commit the changes to the database
+    db.commit()    
+    db.refresh(photo)
+    return photo
 
 # Retrieve image file endpoint
 @router.get("/files/{size}/{image_id}/{filename}")
