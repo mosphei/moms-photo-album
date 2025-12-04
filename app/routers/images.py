@@ -17,7 +17,7 @@ from .get_date import get_image_date
 from ..settings import IMAGESIZES, MEDIADIR
 from ..security import get_current_user
 from ..schemas import PhotoSchema, PhotoUpdate
-from ..models import PhotoModel, User
+from ..models import PhotoModel, User, PersonModel
 from ..database import get_db, update_data_in_db
 
 router = APIRouter(
@@ -111,13 +111,35 @@ async def get_image(image_id: int, db: Session = Depends(get_db), current_user:U
 # Update the image metadata
 @router.patch("/{image_id}", response_model=PhotoSchema)
 async def update_image(image_id: int, photo: PhotoUpdate,  db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    db_image = db.query(PhotoModel).filter(and_(PhotoModel.id == image_id, PhotoModel.user_id == current_user.id)).first()
-    if db_image is None:
+    db_photo = db.query(PhotoModel).filter(and_(PhotoModel.id == image_id, PhotoModel.user_id == current_user.id)).first()
+    if db_photo is None:
         raise HTTPException(status_code=404, detail="Item not found")
-    update_data_in_db(db_image, photo)
+    #dump the model
+    update_data = photo.model_dump(exclude_unset=True)
+    # print(f"update_data:{update_data}")
+    # handle people relationships
+    if "person_ids" in update_data and update_data["person_ids"] is not None:
+        person_ids_to_link = update_data["person_ids"]
+        print(f"person_ids: {person_ids_to_link}")
+        # Fetch all required person objects efficiently in one query
+        persons = db.query(PersonModel).filter(PersonModel.id.in_(person_ids_to_link)).all()
+
+        # Check if all requested IDs were found to prevent linking errors
+        if len(persons) != len(person_ids_to_link):
+            # You might want more specific error handling here
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="One or more Person IDs provided were invalid."
+            )
+
+        # Clear existing relationships and set the new ones
+        db_photo.people.clear()
+        db_photo.people.extend(persons)
+        
+    update_data_in_db(db_photo, photo)
     db.commit()
-    db.refresh(db_image)
-    return db_image
+    db.refresh(db_photo)
+    return db_photo
 
 # Retrieve image file endpoint
 @router.get("/files/{size}/{image_id}/{filename}")

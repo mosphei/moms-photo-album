@@ -50,8 +50,12 @@ class PhotoUpdate(BaseModel):
     date_uploaded: Optional[datetime] = None
     description: Optional[str] = None
     # Nested Pydantic model to list people in the image
-    people: Optional[List[PersonSchema]] = None
+    person_ids: Optional[List[int]] = None
 
+    class Config:
+        # Allows Pydantic to read ORM objects directly
+        from_attributes = True
+        
 class UserCreate(BaseModel):
     username: str
     password: str
