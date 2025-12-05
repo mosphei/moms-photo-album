@@ -1,21 +1,23 @@
 <script lang="ts">
-	import type { Photo } from '$lib/models/photo';
-
-	let { photo }: { photo: Photo } = $props();
-	const parts = photo.file_path.split('/');
-	const filename = parts.pop();
+	import { photoPath, type Photo } from '$lib/models/photo';
+	interface IProps {
+		photo: Photo;
+		onclick?: (e: MouseEvent) => void;
+	}
+	let { photo, onclick = undefined }: IProps = $props();
 	let img: HTMLImageElement;
+
+	function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLAnchorElement }) {
+		throw new Error('Function not implemented.');
+	}
 </script>
 
-<a class="card" href={filename}>
-	<img
-		class="card-img-top"
-		bind:this={img}
-		alt={filename}
-		src="/api/images/files/thumb/{photo.id}/{filename}"
-	/>
+<a class="card" href={photo.filename} {onclick}>
+	<img class="card-img-top" bind:this={img} alt={photo.filename} src={photoPath('t', photo)} />
 	<div class="card-body">
-		{photo.date_taken.toLocaleDateString()}
+		<div class="card-title">
+			{photo.date_taken.toLocaleDateString()}
+		</div>
 		{photo.description}
 	</div>
 </a>
@@ -25,9 +27,10 @@
 		width: 12rem;
 		height: 12rem;
 		border: solid 1px;
-		margin: 1rem;
-		float: left;
+		/*margin: 1rem;
+		float: left;*/
 		text-decoration: none;
+		overflow: hidden;
 	}
 	.card:hover {
 		border-color: var(--mo-primary);
@@ -37,5 +40,6 @@
 		width: 12rem;
 		height: 8rem;
 		object-fit: cover;
+		object-position: top;
 	}
 </style>

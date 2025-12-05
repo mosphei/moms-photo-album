@@ -6,29 +6,20 @@ from models import Base
 
 # Database connection details using environment variables
 DB_HOST = os.getenv("DB_HOST",'db') # The service name defined in docker-compose.yml
-DB_NAME = os.getenv("DB_NAME",'fastapi_db')
+DB_NAME = os.getenv("DB_NAME",'photo_db')
 DB_USER = os.getenv("DB_USER",'xxx') 
 DB_PASS = os.getenv("DB_PASS",'xxx') 
 DB_PORT = 3306        # Default MySQL port
 
-# 2. Construct the database URL using the 'mysql+pymysql' format
-# The 'charset=utf8mb4' part is often recommended for full character support
 DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
 
-# 3. Create the SQLAlchemy engine
-# The pool_pre_ping=True helps maintain healthy connections in a web application setting
 engine = create_engine(
     DATABASE_URL, 
     pool_pre_ping=True # Optional, helps manage connections
 )
 
-# 4. Create a sessionmaker
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 5. Define the Base for your models (this can also be in models.py)
-
-
-# 6. Dependency to get the database session (used in FastAPI endpoints)
 def get_db():
     db = SessionLocal()
     try:
@@ -36,7 +27,15 @@ def get_db():
     finally:
         db.close()
 
-# 7. Utility function to create tables
 def create_all_tables():
     # This will create tables defined using Base in your models.py file
     Base.metadata.create_all(bind=engine)
+
+#from fastapi.encoders import jsonable_encoder
+
+def update_data_in_db(db_model, update_schema):
+    update_data = update_schema.model_dump(exclude_unset=True) # Use .dict(exclude_unset=True) in Pydantic v1
+    for key, value in update_data.items():
+        setattr(db_model, key, value)
+
+    return db_model

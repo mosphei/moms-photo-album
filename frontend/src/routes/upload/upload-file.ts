@@ -24,7 +24,7 @@ export function uploadFileWithProgress(
 	url: string,
 	file: File,
 	progressCallback: (percentComplete: number) => void,
-	headers: any
+	headers: any = undefined
 ): Promise<IUploadResult> {
 	return new Promise((resolve, reject) => {
 		const xhr = new XMLHttpRequest();
@@ -113,7 +113,7 @@ export function fakeUploadFileWithProgress(
 	url: string,
 	file: File,
 	progressCallback: (percentComplete: number) => void,
-	headers: any
+	headers: any = undefined
 ): Promise<IUploadResult> {
 	return new Promise((resolve, reject) => {
 		let percentComplete = 0;

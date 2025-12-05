@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Progress from '$lib/components/Progress.svelte';
 	import { derived, get, writable, type Readable, type Writable } from 'svelte/store';
 	import {
 		fakeUploadFileWithProgress,
@@ -7,7 +6,6 @@
 		type IUpload,
 		type IUploadResult
 	} from './upload-file';
-	import { session } from '$lib/stores/session-store';
 	import UploadCard, { type IFileInfo } from './UploadCard.svelte';
 
 	const MAX = 2;
@@ -62,25 +60,17 @@
 		}
 	}
 	function startUpload(fileEntry: IFileInfo) {
-		const headers = {
-			Authorization: `Bearer ${get(session.token)?.access_token}`
-		};
 		fileEntry.uploadStatus.set({
 			status: 'uploading',
 			percentComplete: 0
 		});
-		uploadFileWithProgress(
-			'/api/images/upload/',
-			fileEntry.file,
-			(percentComplete) => {
-				//console.log(`${fileEntry.filename}=${percentComplete}`);
-				fileEntry.uploadStatus.set({
-					status: 'uploading',
-					percentComplete
-				});
-			},
-			headers
-		)
+		uploadFileWithProgress('/api/images/upload/', fileEntry.file, (percentComplete) => {
+			//console.log(`${fileEntry.filename}=${percentComplete}`);
+			fileEntry.uploadStatus.set({
+				status: 'uploading',
+				percentComplete
+			});
+		})
 			.then((result) => {
 				fileEntry.uploadStatus.set({
 					status: 'complete',

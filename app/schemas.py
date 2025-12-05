@@ -6,6 +6,7 @@ from pydantic import BaseModel, HttpUrl
 class PersonSchema(BaseModel):
     id: int
     name: str
+    past_names: Optional[str] = None
 
     class Config:
         # Allows Pydantic to read ORM objects directly
@@ -14,12 +15,19 @@ class PersonSchema(BaseModel):
 # Schema for creating a new person (no ID needed yet)
 class PersonCreate(BaseModel):
     name: str
+    past_names: Optional[str] = None
+
+class PersonUpdate(BaseModel):
+    name: Optional[str] = None
+    past_names: Optional[str] = None
 
 # Schema for a single image (used for reading data)
 class PhotoSchema(BaseModel):
     id: int
-    file_path: str
+    filename: str
     date_taken: datetime
+    date_uploaded: datetime
+    date_updated: datetime
     description: Optional[str] = None
     # Nested Pydantic model to list people in the image
     people: List[PersonSchema] = []
@@ -31,9 +39,25 @@ class PhotoSchema(BaseModel):
 class PhotoCreate(BaseModel):
     user_id: int
     file_path: str
+    filename: str
     date_taken: datetime | None = None
     hash: str
+    md5sum: str
 
+# Schema for partial updates
+class PhotoUpdate(BaseModel):
+    filename: Optional[str] = None
+    date_taken: Optional[datetime] = None
+    date_uploaded: Optional[datetime] = None
+    description: Optional[str] = None
+    # Nested Pydantic model to list people in the image
+    people: Optional[List[PersonSchema]] = None
+    rotation: Optional[int] = None
+
+    class Config:
+        # Allows Pydantic to read ORM objects directly
+        from_attributes = True
+        
 class UserCreate(BaseModel):
     username: str
     password: str
