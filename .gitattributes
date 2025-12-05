@@ -1,2 +1,2 @@
 frontend/ export-ignore
-.gitignore export-ignore
+.git* export-ignore
