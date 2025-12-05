@@ -52,6 +52,7 @@ class PhotoUpdate(BaseModel):
     description: Optional[str] = None
     # Nested Pydantic model to list people in the image
     people: Optional[List[PersonSchema]] = None
+    rotation: Optional[int] = None
 
     class Config:
         # Allows Pydantic to read ORM objects directly

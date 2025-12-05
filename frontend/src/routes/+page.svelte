@@ -42,6 +42,7 @@
 	function handlePrev(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
 		console.log('handlePrev');
 		event.preventDefault();
+		selectedPhotos = [];
 		if (currentPhotoIndex < 1) {
 			if (page > 1) {
 				console.log('prev page');
@@ -56,6 +57,7 @@
 	}
 
 	function handleNext(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
+		selectedPhotos = [];
 		if (currentPhotoIndex >= $items.length - 1) {
 			// need a new page
 			if (!last || last > page) {
@@ -266,7 +268,6 @@
 			</div>
 			{#snippet footer()}
 				<button type="button" class="btn btn-primary" onclick={handlePrev}>Prev</button>
-				<button>Edit</button>
 				<button type="button" class="btn btn-primary" onclick={handleNext}>Next</button>
 			{/snippet}
 		</Modal>
@@ -288,11 +289,13 @@
 	</div>
 	{#if selectedPhotos.length}
 		<div class="col-auto">
-			<button class="btn btn-primary" onclick={handleEditClick}>
+			<button class="btn btn-primary" onclick={handleEditClick} type="button">
 				Edit
 				{selectedPhotos.length}
 			</button>
-			<button class="btn btn-secondary" onclick={() => (selectedPhotos = [])}> Deselect </button>
+			<button class="btn btn-secondary" onclick={() => (selectedPhotos = [])} type="button">
+				Deselect
+			</button>
 		</div>
 	{/if}
 </div>

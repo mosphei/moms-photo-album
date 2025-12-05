@@ -136,7 +136,19 @@ async def update_image(photo_id: int, photo_update: PhotoUpdate,  db: Session = 
                 photo.people.append(db_person)
             else:
                 raise HTTPException(status_code=404, detail=f"Person with id {person.id} not found")
-
+    # any image manipulations?
+    if photo_update.rotation is not None and photo_update.rotation != 0:
+        print(f"rotation:{photo_update.rotation}")
+        file_location = os.path.join(MEDIADIR,str(current_user.id),photo.file_path)
+        image = Image.open(file_location)
+        rotated_img = image.rotate(photo_update.rotation, expand=True)
+        rotated_img.save(file_location)
+        # delete any thumbnails etc
+        for size in IMAGESIZES:
+            filename = f"{photo.id}_{size}.jpg"
+            cache_location = os.path.join(MEDIADIR,"cache",filename)
+            if os.path.exists(cache_location):
+                os.remove(cache_location)
     # Commit the changes to the database
     db.commit()    
     db.refresh(photo)

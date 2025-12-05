@@ -3,7 +3,7 @@
 	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import type { PaginatedResults } from '$lib/models/paginated-results';
 	import type { Person } from '$lib/models/person';
-	import { photoPath, type Photo } from '$lib/models/photo';
+	import { photoPath, type Photo, type PhotoUpdate } from '$lib/models/photo';
 	import { fetchApi } from '$lib/stores/common-store';
 	import { savePhoto } from '$lib/stores/photo-store';
 	import { SvelteToast } from '@zerodevx/svelte-toast';
@@ -23,7 +23,7 @@
 	}
 	let busy = $state(false);
 
-	async function applyAndSave(photo: Photo, changes: Partial<Photo>) {
+	async function applyAndSave(photo: Photo, changes: PhotoUpdate) {
 		const msg = progressAlert(`saving ${photo.filename}`, { target: 'savetoast' });
 		try {
 			if ('date_taken' in changes) {
@@ -33,6 +33,7 @@
 				changes.date_taken?.setSeconds(photo.date_taken.getSeconds());
 			}
 			await savePhoto(photo.id, changes);
+			await fetchApi(photoPath('t', photo), { cache: 'reload' });
 		} catch (err) {
 			errorAlert(`unable to save ${photo.filename}`, err, 15000, { target: 'savetoast' });
 			throw err;
@@ -41,7 +42,7 @@
 		}
 	}
 	function save(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
-		const updates: Partial<Photo> = {};
+		const updates: PhotoUpdate = {};
 		fieldsToUpdate.forEach((f) => {
 			switch (f) {
 				case 'date_taken':
@@ -52,6 +53,10 @@
 					break;
 				case 'people':
 					updates[f] = people;
+					break;
+				case 'rotation':
+					updates[f] = rotation;
+					break;
 			}
 		});
 		Promise.all(photos.map((photo) => applyAndSave(photo, updates)))
@@ -96,10 +101,10 @@
 	let fieldsToUpdate: string[] = $state([]);
 	let date_taken = $state('');
 	let description = $state('');
-	let rotate = $state(0);
+	let rotation = $state(0);
 
 	let people: Person[] = $state([]);
-	let personInput: HTMLInputElement;
+	let personInput: HTMLInputElement | undefined = $state();
 	let searchText = $state('');
 	let searchResult: Person[] = $state([]);
 	let searchTimer: any;
@@ -127,7 +132,7 @@
 			people = [...people, p];
 			searchResult = [];
 			searchText = '';
-			personInput.focus();
+			personInput?.focus();
 		}
 	}
 
@@ -155,7 +160,7 @@
 	});
 </script>
 
-<div class="d-flex flex-wrap mb-2" style="width: 100%;--rotation:{rotate}deg;">
+<div class="d-flex flex-wrap mb-2" style="width: 100%;--rotation:{rotation}deg;">
 	{#each photos as photo}
 		<div style="margin:4px; width: 200px; height:200px">
 			<img
@@ -284,17 +289,17 @@
 			<div class="input-group-text">
 				<input
 					type="checkbox"
-					value="rotate"
+					value="rotation"
 					bind:group={fieldsToUpdate}
 					class="form-check-input"
 				/>
 			</div>
 			<select
-				name="rotate"
-				id="rotate"
+				name="rotation"
+				id="rotation"
 				class="form-select"
-				bind:value={rotate}
-				disabled={!fieldsToUpdate.includes('rotate')}
+				bind:value={rotation}
+				disabled={!fieldsToUpdate.includes('rotation')}
 			>
 				<option value={0}>Rotate:</option>
 				<option value={270}>left</option>
@@ -305,13 +310,16 @@
 	</div>
 </div>
 <div class="d-flex justify-content-between">
-	<button class="btn btn-primary" onclick={save} disabled={busy || !fieldsToUpdate.length}
-		>Save</button
+	<button
+		class="btn btn-primary"
+		onclick={save}
+		disabled={busy || !fieldsToUpdate.length}
+		type="button">Save</button
 	>
 	<button class="btn btn-secondary" type="button" onclick={handleCancel}>Cancel</button>
 </div>
 <SvelteToast target="savetoast" />
-<DebugPanel value={{ originalValues }} />
+<DebugPanel value={{ fieldsToUpdate, rotation }} />
 
 <style>
 	.ppl {
