@@ -6,8 +6,8 @@ as well as keywords.
 - ~rotate cached images according to metadata~
 - ~filter and sort~
 - ~add an edit page/component~
-- rotate/transform images
-- delete images
+- ~rotate images~
+- ~delete images~
 - implement search
 
 don't forget to start docker desktop and make sure engine is running

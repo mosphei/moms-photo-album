@@ -6,7 +6,7 @@ from models import Base
 
 # Database connection details using environment variables
 DB_HOST = os.getenv("DB_HOST",'db') # The service name defined in docker-compose.yml
-DB_NAME = os.getenv("DB_NAME",'fastapi_db')
+DB_NAME = os.getenv("DB_NAME",'photo_db')
 DB_USER = os.getenv("DB_USER",'xxx') 
 DB_PASS = os.getenv("DB_PASS",'xxx') 
 DB_PORT = 3306        # Default MySQL port
