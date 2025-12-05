@@ -1,5 +1,6 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Text
+from typing import Optional
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Table, Text
 from sqlalchemy.orm import relationship, declarative_base, Mapped, mapped_column
 
 Base = declarative_base()
@@ -13,12 +14,13 @@ photo_person_association = Table(
     Column('person_id', Integer, ForeignKey('people.id'), primary_key=True)
 )
 
-class Person(Base):
+class PersonModel(Base):
     __tablename__ = 'people'
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), index=True)
+    name = Column(String(255), index=True, nullable=False)
+    past_names = Column(String(255))
     # Establishes the link to the Photo model via the association table
-    photos = relationship("PhotoModel", secondary=photo_person_association, back_populates="people")
+    photos: Mapped[list['PhotoModel']] = relationship("PhotoModel", secondary="photo_person_association", viewonly=True)
 
 class PhotoModel(Base):
     __tablename__ = 'photos'
@@ -28,21 +30,22 @@ class PhotoModel(Base):
     file_path: Mapped[str] = mapped_column(String(255), nullable=False)
     # original filename
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    date_taken = Column(DateTime, nullable=True, index=True)
-    date_uploaded = Column(DateTime, default=datetime.utcnow)
-    date_updated = Column(DateTime, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    date_taken: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    date_uploaded: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    date_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     # hashing for find duplicate photos
-    hash = Column(String(64), nullable=True)
-    md5sum = Column(String(32), nullable=True)
+    hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    md5sum: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     # Establishes the link to the Person model via the association table
-    people = relationship("Person", secondary=photo_person_association, back_populates="photos")
+    people: Mapped[list[PersonModel]] = relationship("PersonModel", secondary="photo_person_association")
 
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     username = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
+    admin = (Column(Boolean, default=False))
     Column('person_id', Integer, ForeignKey('people.id'), primary_key=True)
 
 class UserSession(Base):

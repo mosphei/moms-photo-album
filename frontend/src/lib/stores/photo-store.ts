@@ -1,7 +1,7 @@
 import type { PaginatedResults } from '$lib/models/paginated-results';
 import type { Photo } from '$lib/models/photo';
 import { dateFormat, dateTimeReviver, loadFromLocalstorage, setLocalstorage } from '$lib/utils';
-import { derived, writable, type Writable } from 'svelte/store';
+import { derived, get, writable, type Writable } from 'svelte/store';
 import { fetchApi } from './common-store';
 
 interface ICriteria {
@@ -58,6 +58,15 @@ const totalItems = writable(null as null | number);
 const criteria = writable({ sortBy: 'date_taken', sortDescending: false } as ICriteria);
 //debounce?
 let fetchTimerId: any = undefined;
+async function refreshItems(_page: number, _pagesize: number, _criteria: ICriteria) {
+	const result = await getPhotos(_page, _pagesize, _criteria);
+	if (result) {
+		itemList.set(result.items);
+		if (result.total_count) {
+			totalItems.set(result.total_count);
+		}
+	}
+}
 const changes = derived(
 	[currentPage, numPerPage, criteria],
 	([CurrentPage, NumPerPage, Criteria]) => {
@@ -65,16 +74,7 @@ const changes = derived(
 			console.log('debounce');
 			clearTimeout(fetchTimerId);
 		}
-		fetchTimerId = setTimeout(() => {
-			getPhotos(CurrentPage, NumPerPage, Criteria).then((result) => {
-				if (result) {
-					itemList.set(result.items);
-					if (result.total_count) {
-						totalItems.set(result.total_count);
-					}
-				}
-			}); // catch?
-		}, 50);
+		fetchTimerId = setTimeout(() => refreshItems(CurrentPage, NumPerPage, Criteria), 50);
 	}
 );
 changes.subscribe((x) => console.log('changed'));
@@ -84,7 +84,24 @@ export const photopages = {
 	numPerPage,
 	currentPage,
 	totalItems,
-	criteria
+	criteria,
+	refresh: async () => await refreshItems(get(currentPage), get(numPerPage), get(criteria))
 };
 // load the first page
 currentPage.set(1);
+
+export async function savePhoto(id: number, photo: Partial<Photo>) {
+	console.log('saving photo', photo);
+	const response = await fetchApi(`/api/images/${id}`, {
+		method: 'PATCH',
+		body: JSON.stringify(photo),
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	});
+	if (response) {
+		const result: Photo = JSON.parse(response, dateTimeReviver);
+		itemList.update((items) => items.map((itm) => (itm.id === result.id ? result : itm)));
+	}
+	console.log('save response', response);
+}
