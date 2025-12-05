@@ -49,7 +49,7 @@ function getErrorDetails(err: any) {
 			//console.log('nope', err);
 		}
 		if (err) {
-			detail += ` ${err.ExceptionMessage || err.Message || err.message || err.toString()}`;
+			detail += ` ${err.detail || err.Message || err.message || err.toString()}`;
 		}
 	}
 	return detail;

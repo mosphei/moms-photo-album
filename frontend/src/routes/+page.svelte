@@ -203,6 +203,12 @@
 		editDialog!.open();
 	}
 	let viewdialog: Modal | undefined = $state(undefined);
+
+	function handleOnSave(): void {
+		editDialog?.close();
+		selectedPhotos = [];
+		photopages.refresh();
+	}
 </script>
 
 <div id="filters" class="row g-3 align-items-center mb-2">
@@ -304,10 +310,6 @@
 	{#snippet title()}
 		Edit {photosToEdit.length} Item{photosToEdit.length == 1 ? '' : 's'}
 	{/snippet}
-	<PhotoEditor
-		photos={photosToEdit}
-		onsave={() => editDialog?.close()}
-		oncancel={() => editDialog?.close()}
-	/>
+	<PhotoEditor photos={photosToEdit} onsave={handleOnSave} oncancel={() => editDialog?.close()} />
 </Modal>
 <DebugPanel value={{ currentPage: $currentPage, photos: $items }} />

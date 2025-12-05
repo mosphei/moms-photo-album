@@ -1,6 +1,8 @@
 from datetime import datetime
 import hashlib
+import json
 import os
+import shutil
 from typing import List, Literal
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
@@ -153,6 +155,33 @@ async def update_image(photo_id: int, photo_update: PhotoUpdate,  db: Session = 
     db.commit()    
     db.refresh(photo)
     return photo
+
+# Delete!
+@router.delete("/{photo_id}")
+async def delete_photo(photo_id: int, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    photo = db.query(PhotoModel).filter(PhotoModel.id == photo_id).first()
+    if not photo is None:
+        file_path=os.path.join(MEDIADIR,str(current_user.id),photo.file_path)
+        if os.path.exists(file_path):
+            basename, ext = os.path.splitext(photo.filename)
+            trashbin=os.path.join(MEDIADIR,'trash',str(current_user.id))
+            os.makedirs(trashbin, exist_ok=True)
+            photo_filename=f"{photo.id:04d}{ext}"
+            data_filename=f"{photo.id:04d}.json"
+            with open(os.path.join(trashbin,data_filename), 'w') as json_file:
+                photoSchema=PhotoSchema.model_validate(photo)
+                json_string = photoSchema.model_dump_json(indent=4)
+                json_file.write(json_string)
+            shutil.move(file_path,os.path.join(trashbin,photo_filename))
+        # delete from database too
+        db.delete(photo)
+        db.commit()
+        # finally get rid of any thumbnails etc
+        for size in IMAGESIZES:
+            filename = f"{photo.id}_{size}.jpg"
+            cache_location = os.path.join(MEDIADIR,"cache",filename)
+            if os.path.exists(cache_location):
+                os.remove(cache_location)
 
 # Retrieve image file endpoint
 @router.get("/files/{size}/{image_id}/{filename}")

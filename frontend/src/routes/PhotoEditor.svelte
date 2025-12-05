@@ -158,6 +158,27 @@
 	onMount(() => {
 		console.log('PhotoEditor.svelte');
 	});
+
+	async function handleDelete(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		const confirmed = confirm(`Delete ${photos.length} photo${photos.length == 1 ? '' : 's'}`);
+		if (confirmed) {
+			Promise.all(
+				photos.map((photo) => {
+					return fetchApi(`/api/images/${photo.id}`, {
+						method: 'DELETE'
+					});
+				})
+			)
+				.then(() => {
+					onsave?.();
+				})
+				.catch((err) => {
+					errorAlert(`unable to delete!`, err, 15000, { target: 'savetoast' });
+				});
+		}
+	}
 </script>
 
 <div class="d-flex flex-wrap mb-2" style="width: 100%;--rotation:{rotation}deg;">
@@ -316,6 +337,7 @@
 		disabled={busy || !fieldsToUpdate.length}
 		type="button">Save</button
 	>
+	<button type="button" class="btn btn-danger" onclick={handleDelete}>Delete</button>
 	<button class="btn btn-secondary" type="button" onclick={handleCancel}>Cancel</button>
 </div>
 <SvelteToast target="savetoast" />
