@@ -90,6 +90,7 @@
 			});
 	}
 </script>
+
 <svelte:head><title>PhotoDB - Upload</title></svelte:head>
 <h1>Upload</h1>
 <p>Select one or more image files</p>
