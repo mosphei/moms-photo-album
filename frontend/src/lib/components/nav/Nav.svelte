@@ -48,6 +48,9 @@
 				<li class="nav-item">
 					<a href={resolve('/upload')} class="nav-link">Upload</a>
 				</li>
+				<li class="nav-item">
+					<a href={resolve('/people')} class="nav-link">People</a>
+				</li>
 				<!--
 				<NavDropdown text="Dropdown">
 					<a class="dropdown-item" href="/xxx">X</a>
