@@ -16,7 +16,7 @@ import textwrap
 from ..pagination import PaginatedResults
 
 from .get_date import get_image_date
-from ..settings import IMAGESIZES, MEDIADIR
+from ..settings import IMAGESIZES, MEDIADIR, MEDIATYPES
 from ..security import get_current_user
 from ..schemas import PhotoSchema, PhotoUpdate
 from ..models import PhotoModel, User, PersonModel
@@ -40,10 +40,7 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         img_hash = imagehash.average_hash(img)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
-
-    # date
-    date_taken = get_image_date(img, filename)
-
+    
     # try and get exact matches
     dupe:PhotoModel|None = None
     dupe = db.query(PhotoModel).filter(and_(
@@ -52,10 +49,11 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         )).first()
     
     if not dupe is None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, # 409
-            detail=f"duplicate of file {dupe.id}"
-        )
+        #this file has already been uploaded
+        return dupe
+    
+    # date
+    date_taken = get_image_date(img, filename)
     if date_taken:
         parent_dirs = os.path.join(f"{date_taken.year:04d}", f"{date_taken.month:02d}")
     else:
@@ -199,10 +197,12 @@ async def get_image_file(size: str, image_id: int, filename: str, db: Session = 
         if not os.path.exists(thumb_location):
             "create the thumbnail"
             os.makedirs(os.path.join(MEDIADIR,"cache"), exist_ok=True)
-            with Image.open(file_location) as img:
-                img_transposed = ImageOps.exif_transpose(img)
-                img_transposed.thumbnail(IMAGESIZES[size], Image.Resampling.LANCZOS)
-                img_transposed.save(thumb_location)
+            basename, ext = os.path.splitext(image.filename)
+            if ext.lower() in MEDIATYPES["image"]:
+                with Image.open(file_location) as img:
+                    img_transposed = ImageOps.exif_transpose(img)
+                    img_transposed.thumbnail(IMAGESIZES[size], Image.Resampling.LANCZOS)
+                    img_transposed.save(thumb_location)
         return FileResponse(thumb_location)
     if size == "o":
         return FileResponse(file_location)
