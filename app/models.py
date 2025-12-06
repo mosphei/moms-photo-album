@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Table, Text
-from sqlalchemy.orm import relationship, declarative_base, Mapped, mapped_column
+from sqlalchemy.orm import relationship, declarative_base, Mapped, mapped_column, column_property
 
 Base = declarative_base()
 
@@ -21,6 +21,27 @@ class PersonModel(Base):
     past_names = Column(String(255))
     # Establishes the link to the Photo model via the association table
     photos: Mapped[list['PhotoModel']] = relationship("PhotoModel", secondary="photo_person_association", viewonly=True)
+
+class PersonCountModel(Base):
+    """
+    CREATE VIEW person_photo_counts AS
+    SELECT
+        id,
+        name,
+        past_names,
+        COUNT(photo_id) AS photo_count
+    FROM
+        people 
+    LEFT JOIN
+        photo_person_association ON id=people.id
+    GROUP BY
+        people.id
+    """
+    __tablename__ = 'person_photo_counts'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255))
+    past_names = Column(String(255))
+    photo_count = Column(Integer)
 
 class PhotoModel(Base):
     __tablename__ = 'photos'

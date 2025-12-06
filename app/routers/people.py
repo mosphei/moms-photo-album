@@ -6,7 +6,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db, update_data_in_db
-from app.models import PersonModel, User
+from app.models import PersonCountModel, PersonModel, User
 from app.pagination import PaginatedResults
 from app.schemas import PersonCreate, PersonUpdate, PersonSchema
 from app.security import get_current_user
@@ -22,17 +22,17 @@ router = APIRouter(
 @router.get("/", response_model=PaginatedResults[PersonSchema])
 async def get_people_list(q:str|None=None, offset: int = 0, limit: int = 100, sortBy:Literal["name"] = "name", sortDescending: bool = False, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
     # sort
-    sort = PersonModel.name.asc()
+    sort = PersonCountModel.name.asc()
     if sortBy == "name":
         if sortDescending:
-            sort = PersonModel.name.desc()
+            sort = PersonCountModel.name.desc()
     
     # search
-    items_stmt = select(PersonModel)
-    count_stmt = select(func.count()).select_from(PersonModel)
+    items_stmt = select(PersonCountModel)
+    count_stmt = select(func.count()).select_from(PersonCountModel)
     if q is not None:
         term = re.sub(r'[^a-zA-Z]', "%", q)
-        filter_conditions = or_(PersonModel.name.ilike(f"%{term}%"),PersonModel.past_names.ilike(f"%{term}%"))
+        filter_conditions = or_(PersonCountModel.name.ilike(f"%{term}%"),PersonCountModel.past_names.ilike(f"%{term}%"))
         items_stmt = items_stmt.filter(filter_conditions).offset(offset).limit(limit).order_by(sort)
         count_stmt = count_stmt.filter(filter_conditions)
     

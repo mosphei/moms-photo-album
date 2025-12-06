@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Pagination from '$lib/components/Pagination.svelte';
+	import type { Person } from '$lib/models/person';
 	import { peoplepages } from '$lib/stores/people-store';
 	import { onMount } from 'svelte';
 
@@ -8,6 +9,8 @@
 	let last: number | undefined = $state(undefined);
 	let q = $state('');
 	let sortDescending = $state(false);
+    // for editing person
+    let editPerson:Person|undefined = $state();
 
 	function setLastPage(total_count: number | null, limit: number) {
 		if (total_count && limit > 0) {
@@ -47,9 +50,18 @@
 		});
 	}
 
+    $effect(()=>{
+        currentPage.set(page);
+    });
+
 	onMount(() => {
 		peoplepages.refresh();
 	});
+
+
+	function savePerson(editPerson: Person | undefined): any {
+		throw new Error('Function not implemented.');
+	}
 </script>
 
 <svelte:head><title>PhotoDB - People</title></svelte:head>
@@ -83,17 +95,68 @@
 		</div>
 	</div>
 </div>
-{#if $items.length == 0}
-	<div class="alert alert-info m-3">No people found.</div>
-{/if}
-{#each $items as person}
-	<div class="card mb-3">
-		<div class="card-body">
-			<h5 class="card-title">{person.name} ({person.id})</h5>
-			<p class="card-text">{person.past_names || ''}</p>
-		</div>
-	</div>
-{/each}
+<p class="lead">
+	{($currentPage - 1) * $numPerPage + 1}-{$currentPage * $numPerPage}
+	{#if $totalItems}
+		of {$totalItems}
+	{/if}
+</p>
+{#snippet viewPersonListItem(person:Person)}
+    <div class="list-group-item">
+        <div class="d-flex w-100">
+            <h5 class="mb-1">
+                
+                {person.name}
+                
+            </h5>
+            <span style="flex:1"></span>
+                    
+            <button class="btn btn-secondary" type="button" title="Edit" onclick={()=>editPerson = person}>
+                <span class="bi bi-pencil"></span>
+                Edit
+            </button>
+        </div>
+        {#if person.past_names?.length}
+            <p class="mb-1">Other Names: {person.past_names}</p>
+        {/if}
+    </div>
+{/snippet}
+{#snippet editPersonListItem(person:Person)}
+<div class="list-group-item">
+    <div class="d-flex w-100">
+        <h5 class="mb-1">Edit Person</h5>
+        <span style="flex:1"></span><button class="btn btn-primary me-2" type="button" title="Edit" onclick={()=>savePerson(editPerson)}>
+        <span class="bi bi-floppy"></span>
+            Save
+        </button>
+        <button class="btn btn-secondary" type="button" title="Edit" onclick={()=>editPerson = undefined}>
+            
+            Cancel
+        </button>
+    </div>    
+    <div class="mb-1">
+        <label for="name">Name:</label>
+        <input bind:value={editPerson!.name} class="form-control" name="name">
+    </div>
+    <div class="mb-1">
+        <label for="pastnames">Other Names:</label>
+        <input class="form-control" bind:value={editPerson!.past_names} name="pastnames">
+    </div> 
+</div>
+{/snippet}
+<div class="list-group">
+	{#if $items.length == 0}
+		<div class="list-group-item">No people found.</div>
+	{/if}
+	{#each $items as person}
+        {#if editPerson?.id == person.id}
+            {@render editPersonListItem(person)}
+        {:else}
+            {@render viewPersonListItem(person)}
+        {/if}
+		
+	{/each}
+</div>
 <!-- footer -->
 <div style="clear: both;position:sticky;bottom:4px" class="row g-3">
 	<div class="col-auto">
