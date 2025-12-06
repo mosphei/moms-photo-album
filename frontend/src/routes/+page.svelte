@@ -210,7 +210,7 @@
 		photopages.refresh();
 	}
 </script>
-
+<svelte:head><title>PhotoDB - Moms Photo Album</title></svelte:head>
 <div id="filters" class="row g-3 align-items-center mb-2">
 	<div class="col-auto">Filter/Sort</div>
 	<!-- by date -->

@@ -8,5 +8,5 @@ IMAGESIZES = {
 
 MEDIATYPES = {
     "image": [".jpg", ".jpeg", ".bmp", ".gif", ".png" ],
-    "video": [".avi", ".mp4", ".3gp", ".mov"]
+    "video": [".avi", ".mp4", ".3gp", ".mov", ".mts"]
 }

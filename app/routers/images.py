@@ -61,6 +61,8 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         left_12 = base_name[:12]
         chunks_list = textwrap.wrap(left_12, 4)
         parent_dirs = os.path.join(*chunks_list)
+        # set a date
+        date_taken=datetime(1900, 1, 1, 0, 0, 0)
 
     upload_dir = os.path.join(MEDIADIR,str(current_user.id),parent_dirs)
     os.makedirs(upload_dir, exist_ok=True)
