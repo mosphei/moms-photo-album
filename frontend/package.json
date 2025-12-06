@@ -1,10 +1,11 @@
 {
-	"name": "frontend",
+	"name": "photodb",
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
+		"prebuild": "dotnet-gitversion /output file /outputfile gitversion.json",
 		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -12,7 +13,9 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check .",
 		"test:e2e": "playwright test",
-		"test": "npm run test:e2e"
+		"test": "npm run test:e2e",
+		"prepublish": "vite build",
+		"publish": "copyfiles -u 1 build/**/* ../publish/photodb/app/static"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.49.1",
@@ -22,6 +25,7 @@
 		"@sveltejs/vite-plugin-svelte": "^4.0.0",
 		"@zerodevx/svelte-toast": "0.9.6",
 		"bootstrap-icons": "^1.13.1",
+		"copyfiles": "^2.4.1",
 		"prettier": "^3.4.2",
 		"prettier-plugin-svelte": "^3.3.3",
 		"sass": "^1.94.2",
