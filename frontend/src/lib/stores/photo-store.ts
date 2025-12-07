@@ -11,7 +11,7 @@ interface ICriteria {
 	sortDescending: boolean;
 }
 
-async function getPhotos(
+export async function getPhotos(
 	page: number,
 	pagesize: number,
 	criteria: ICriteria | undefined = undefined

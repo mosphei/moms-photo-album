@@ -18,7 +18,7 @@ export interface ICriteria {
 	sortDescending: boolean;
 }
 
-async function getPeople(
+export async function getPeople(
 	page: number,
 	pagesize: number,
 	criteria: ICriteria | undefined = undefined

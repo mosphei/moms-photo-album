@@ -12,7 +12,7 @@
 	}
 </script>
 
-<a class="card" href={photoPath('l',photo)} {onclick}>
+<a class="card" href={photoPath('l', photo)} {onclick}>
 	<img class="card-img-top" bind:this={img} alt={photo.filename} src={photoPath('t', photo)} />
 	<div class="card-body">
 		<div class="card-title">
