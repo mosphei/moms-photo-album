@@ -92,19 +92,18 @@ export const peoplepages = {
 // fetch at least once
 setTimeout(() => peoplepages.refresh, 10);
 
-
 export async function savePerson(person: Person) {
-    console.log('saving person', person);
-    const response = await fetchApi(`/api/people/${person.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(person),
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    });
-    if (response) {
-        const result: Person = JSON.parse(response, dateTimeReviver);
-        itemList.update((items) => items.map((itm) => (itm.id === result.id ? result : itm)));
-    }
-    console.log('save response', response);
+	console.log('saving person', person);
+	const response = await fetchApi(`/api/people/${person.id}`, {
+		method: 'PATCH',
+		body: JSON.stringify(person),
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	});
+	if (response) {
+		const result: Person = JSON.parse(response, dateTimeReviver);
+		itemList.update((items) => items.map((itm) => (itm.id === result.id ? result : itm)));
+	}
+	console.log('save response', response);
 }

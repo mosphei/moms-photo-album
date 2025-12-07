@@ -33,7 +33,7 @@ class PersonCountModel(Base):
     FROM
         people 
     LEFT JOIN
-        photo_person_association ON id=people.id
+        photo_person_association ON photo_person_association.photo_id=people.id
     GROUP BY
         people.id
     """

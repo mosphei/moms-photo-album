@@ -1,16 +1,18 @@
 <script lang="ts">
+	import { errorAlert, progressAlert } from '$lib/alerts';
+	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import type { Person } from '$lib/models/person';
-	import { peoplepages } from '$lib/stores/people-store';
+	import { peoplepages, savePerson } from '$lib/stores/people-store';
 	import { onMount } from 'svelte';
 
 	let { currentPage, numPerPage, items, totalItems, criteria } = peoplepages;
 	let page = $state($currentPage);
 	let last: number | undefined = $state(undefined);
-	let q = $state('');
+	let q = $state($criteria.q);
 	let sortDescending = $state(false);
-    // for editing person
-    let editPerson:Person|undefined = $state();
+	// for editing person
+	let editPerson: Person | undefined = $state();
 
 	function setLastPage(total_count: number | null, limit: number) {
 		if (total_count && limit > 0) {
@@ -28,20 +30,21 @@
 		numPerPage.set(x);
 	}
 
-	function handleNameInput(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
+	$effect(() => {
+		console.log(`q=${q}`);
 		peoplepages.criteria.update((C) => {
-			if (q.length) {
+			if (q?.length) {
 				C.q = q;
 			} else {
 				C.q = undefined;
 			}
 			return C;
 		});
-	}
+	});
 
 	function handleSortChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
 		peoplepages.criteria.update((C) => {
-			if (q.length) {
+			if (q?.length) {
 				C.q = q;
 			} else {
 				C.q = undefined;
@@ -50,17 +53,27 @@
 		});
 	}
 
-    $effect(()=>{
-        currentPage.set(page);
-    });
+	$effect(() => {
+		currentPage.set(page);
+	});
 
 	onMount(() => {
 		peoplepages.refresh();
 	});
 
-
-	function savePerson(editPerson: Person | undefined): any {
-		throw new Error('Function not implemented.');
+	async function handleSave(prson: Person | undefined) {
+		console.log('handleSave');
+		if (prson) {
+			const msg = progressAlert('saving person info...');
+			try {
+				const x = await savePerson(prson);
+				editPerson = undefined;
+			} catch (error) {
+				errorAlert(`unable to save person ${prson?.id}`, error, 15000);
+			} finally {
+				msg.dismiss();
+			}
+		}
 	}
 </script>
 
@@ -70,14 +83,14 @@
 	<div class="col-auto">Filter/Sort</div>
 	<!-- by date -->
 	<div class="col-auto">
-		<input
-			type="text"
-			name="q"
-			bind:value={q}
-			placeholder="Name"
-			oninput={handleNameInput}
-			class="form-control"
-		/>
+		<div class="input-group">
+			<input type="text" name="q" bind:value={q} placeholder="Name" class="form-control" />
+			{#if q}
+				<button class="btn btn-primary" onclick={() => (q = '')} aria-label="clear search"
+					><span class="bi bi-x"></span></button
+				>
+			{/if}
+		</div>
 	</div>
 	<!-- sort -->
 	<div class="col-auto">
@@ -101,60 +114,75 @@
 		of {$totalItems}
 	{/if}
 </p>
-{#snippet viewPersonListItem(person:Person)}
-    <div class="list-group-item">
-        <div class="d-flex w-100">
-            <h5 class="mb-1">
-                
-                {person.name}
-                
-            </h5>
-            <span style="flex:1"></span>
-                    
-            <button class="btn btn-secondary" type="button" title="Edit" onclick={()=>editPerson = person}>
-                <span class="bi bi-pencil"></span>
-                Edit
-            </button>
-        </div>
-        {#if person.past_names?.length}
-            <p class="mb-1">Other Names: {person.past_names}</p>
-        {/if}
-    </div>
+{#snippet viewPersonListItem(person: Person)}
+	<div class="list-group-item">
+		<div class="d-flex w-100">
+			<h5 class="mb-1">
+				{person.name}
+			</h5>
+			<span style="flex:1"></span>
+
+			<button
+				class="btn btn-secondary"
+				type="button"
+				title="Edit"
+				onclick={() => (editPerson = JSON.parse(JSON.stringify(person)))}
+			>
+				<span class="bi bi-pencil"></span>
+				Edit
+			</button>
+		</div>
+		{#if person.past_names?.length}
+			<p class="mb-1">Other Names: {person.past_names}</p>
+		{/if}
+		{#if person.photo_count}
+			<small>Appears in {person.photo_count} photo{person.photo_count == 1 ? '' : 's'}</small>
+		{/if}
+	</div>
 {/snippet}
-{#snippet editPersonListItem(person:Person)}
-<div class="list-group-item">
-    <div class="d-flex w-100">
-        <h5 class="mb-1">Edit Person</h5>
-        <span style="flex:1"></span><button class="btn btn-primary me-2" type="button" title="Edit" onclick={()=>savePerson(editPerson)}>
-        <span class="bi bi-floppy"></span>
-            Save
-        </button>
-        <button class="btn btn-secondary" type="button" title="Edit" onclick={()=>editPerson = undefined}>
-            
-            Cancel
-        </button>
-    </div>    
-    <div class="mb-1">
-        <label for="name">Name:</label>
-        <input bind:value={editPerson!.name} class="form-control" name="name">
-    </div>
-    <div class="mb-1">
-        <label for="pastnames">Other Names:</label>
-        <input class="form-control" bind:value={editPerson!.past_names} name="pastnames">
-    </div> 
-</div>
+{#snippet editPersonListItem(person: Person)}
+	<div class="list-group-item">
+		<div class="d-flex w-100">
+			<h5 class="mb-1">Edit Person</h5>
+			<span style="flex:1"></span><button
+				class="btn btn-primary me-2"
+				type="button"
+				title="Edit"
+				onclick={() => handleSave(editPerson)}
+			>
+				<span class="bi bi-floppy"></span>
+				Save
+			</button>
+			<button
+				class="btn btn-secondary"
+				type="button"
+				title="Edit"
+				onclick={() => (editPerson = undefined)}
+			>
+				Cancel
+			</button>
+		</div>
+		<div class="mb-1">
+			<label for="name">Name:</label>
+			<input bind:value={editPerson!.name} class="form-control" name="name" />
+		</div>
+		<div class="mb-1">
+			<label for="pastnames">Other Names:</label>
+			<input class="form-control" bind:value={editPerson!.past_names} name="pastnames" />
+		</div>
+	</div>
 {/snippet}
-<div class="list-group">
+<!-- the list of people -->
+<div class="list-group mb-3">
 	{#if $items.length == 0}
 		<div class="list-group-item">No people found.</div>
 	{/if}
 	{#each $items as person}
-        {#if editPerson?.id == person.id}
-            {@render editPersonListItem(person)}
-        {:else}
-            {@render viewPersonListItem(person)}
-        {/if}
-		
+		{#if editPerson?.id == person.id}
+			{@render editPersonListItem(person)}
+		{:else}
+			{@render viewPersonListItem(person)}
+		{/if}
 	{/each}
 </div>
 <!-- footer -->
@@ -173,3 +201,4 @@
 		</div>
 	</div>
 </div>
+<DebugPanel value={{ criteria: $criteria }} />

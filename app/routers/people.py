@@ -60,9 +60,9 @@ def add_person(person: PersonCreate, db: Session = Depends(get_db), current_user
 
 # Update the person record
 @router.patch("/{person_id}", response_model=PersonSchema)
-async def update_person(image_id: int, photo: PersonUpdate, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+async def update_person(person_id: int, photo: PersonUpdate, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
     # should restrict this to admins?
-    db_person = db.query(PersonModel).filter(PersonModel.id == image_id).first()
+    db_person = db.query(PersonModel).filter(PersonModel.id == person_id).first()
     if db_person is None:
         raise HTTPException(status_code=404, detail="Item not found")
     update_data_in_db(db_person, photo)
