@@ -7,11 +7,13 @@
 		type IUploadResult
 	} from './upload-file';
 	import UploadCard, { type IFileInfo } from './UploadCard.svelte';
+	import { photopages } from '$lib/stores/photo-store';
 
 	const MAX = 2;
 
 	let fileList: IFileInfo[] = $state([]);
 	function onSelectFiles() {
+		fileList = [];
 		input.click();
 	}
 	let input: HTMLInputElement;
@@ -55,6 +57,7 @@
 				}
 				if (uploading.length === 0) {
 					busy = false;
+					photopages.refresh();
 				}
 			});
 		}
@@ -88,6 +91,7 @@
 	}
 </script>
 
+<svelte:head><title>PhotoDB - Upload</title></svelte:head>
 <h1>Upload</h1>
 <p>Select one or more image files</p>
 {#each fileList as f}

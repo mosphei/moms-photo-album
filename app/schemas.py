@@ -7,6 +7,7 @@ class PersonSchema(BaseModel):
     id: int
     name: str
     past_names: Optional[str] = None
+    photo_count: Optional[int] = None
 
     class Config:
         # Allows Pydantic to read ORM objects directly
