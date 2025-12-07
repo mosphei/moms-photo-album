@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Table, Text
+from sqlalchemy import Boolean, Column, Float, Integer, String, DateTime, ForeignKey, Table, Text
 from sqlalchemy.orm import relationship, declarative_base, Mapped, mapped_column, column_property
 
 Base = declarative_base()
@@ -74,3 +74,10 @@ class UserSession(Base):
     id = Column(String(64), primary_key=True, index=True)
     user_id = Column(Integer,ForeignKey('users.id'))
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+class SearchPhotoModel(Base):
+    __tablename__ = "searchphotos"
+    q = mapped_column(String(255), nullable=False, primary_key=True)
+    photo_id = mapped_column(Integer, nullable=False, primary_key=True)
+    relevance = mapped_column(Float, nullable=False)
+    date_seen = mapped_column(DateTime, default=datetime.utcnow)
