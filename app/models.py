@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy import Boolean, Column, Float, Integer, String, DateTime, ForeignKey, Table, Text
 from sqlalchemy.orm import relationship, declarative_base, Mapped, mapped_column, column_property
+from sqlalchemy.dialects.mysql import LONGTEXT
 
 Base = declarative_base()
 
@@ -52,7 +53,7 @@ class PhotoModel(Base):
     file_path: Mapped[str] = mapped_column(String(255), nullable=False)
     # original filename
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
     date_taken: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     date_uploaded: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     date_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
