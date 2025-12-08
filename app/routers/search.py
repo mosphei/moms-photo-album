@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import and_, desc, func, nulls_last, or_, select
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import PhotoModel, User, SearchPhotoModel
+from app.models import PersonModel, PhotoModel, SearchPersonModel, User, SearchPhotoModel
 from app.pagination import PaginatedResults
-from app.schemas import PhotoSchema
+from app.schemas import PersonSchema, PhotoSchema
 from app.security import get_current_user
 from rapidfuzz import fuzz, utils
 
@@ -16,6 +16,67 @@ router = APIRouter(
     tags=["search"],   
 )
 
+@router.get("/people")
+async def search_people(q: str,offset: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    q_filter_value = utils.default_process(q)
+    if q_filter_value =="":
+        raise HTTPException(status_code=409,detail="invalid search")
+    
+    query = (
+        select(PersonModel)
+        .outerjoin(
+            SearchPersonModel,
+            and_(
+                PersonModel.id == SearchPersonModel.person_id,
+                SearchPersonModel.q == q_filter_value,
+            )
+        )
+        .where(
+            or_(
+                SearchPersonModel.person_id.is_(None),
+                SearchPersonModel.date_seen < PersonModel.date_updated
+            )
+        )
+    )
+    persons_to_process = db.execute(query).scalars().all()
+    for person in persons_to_process:
+        spm = SearchPersonModel(person_id=person.id, q=q, relevance=0)
+        spm.relevance = fuzz.partial_ratio(q, str(person.name))
+        if person.past_names is not None:
+            ratio = fuzz.partial_ratio(q, str(person.past_names))
+            if ratio > spm.relevance:
+                spm.relevance = ratio
+        db.add(spm)
+    db.commit()
+    
+    # do the query
+    query = (
+        select(PersonModel)
+        .outerjoin(
+            SearchPersonModel,
+            and_(
+                PersonModel.id == SearchPersonModel.person_id, 
+                SearchPersonModel.q == q_filter_value,
+                )
+        )
+        .order_by(desc(SearchPersonModel.relevance))
+        .offset(offset).limit(limit)
+    )
+    person_list = db.execute(query).scalars().all()
+    
+    count_stmt = select(func.count()).select_from(PersonModel)
+    total_count = db.execute(count_stmt).scalar()
+
+    # count em
+    paginated_response = PaginatedResults[PersonSchema](
+        items=person_list,
+        total_count=total_count,
+        offset=offset,
+        limit=limit
+    )
+    return paginated_response
+
+    
 @router.get("/images")
 async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal["date_taken", "date_uploaded", "date_updated", "relevance"] = "relevance", sortDescending: bool = False, after: datetime  | None = None, before: datetime  | None = None, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
     filter_conditions = [PhotoModel.user_id == current_user.id]
@@ -28,11 +89,6 @@ async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal
     q_filter_value = utils.default_process(q)
     if q_filter_value =="":
         raise HTTPException(status_code=409,detail="invalid search")
-    subquery = (
-        select(SearchPhotoModel.photo_id)
-        .where(SearchPhotoModel.q == q_filter_value)
-        .scalar_subquery() # Makes this select usable as a scalar value source (e.g., in a NOT IN clause)
-    )
     query = (
         select(PhotoModel)
         # Perform an outer join between PhotoModel and SearchPhotoModel on ID and 'q' value
@@ -46,10 +102,7 @@ async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal
         )
         .where(
             or_(
-                # Condition A: The photo is entirely missing from SearchPhotoModel for this 'q'
                 SearchPhotoModel.photo_id.is_(None),
-
-                # Condition B: The existing entry has a date_seen older than the photo's last update
                 SearchPhotoModel.date_seen < PhotoModel.date_updated
             )
         )

@@ -19,6 +19,7 @@ class PersonModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), index=True, nullable=False)
     past_names = Column(String(255))
+    date_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     # Establishes the link to the Photo model via the association table
     photos: Mapped[list['PhotoModel']] = relationship("PhotoModel", secondary="photo_person_association", viewonly=True)
 
@@ -75,6 +76,13 @@ class UserSession(Base):
     user_id = Column(Integer,ForeignKey('users.id'))
     timestamp = Column(DateTime, default=datetime.utcnow)
 
+class SearchPersonModel(Base):
+    __tablename__ = "searchpeople"
+    q = mapped_column(String(255), nullable=False, primary_key=True)
+    person_id = mapped_column(Integer, nullable=False, primary_key=True)
+    relevance = mapped_column(Float, nullable=False)
+    date_seen = mapped_column(DateTime, default=datetime.utcnow)
+    
 class SearchPhotoModel(Base):
     __tablename__ = "searchphotos"
     q = mapped_column(String(255), nullable=False, primary_key=True)
