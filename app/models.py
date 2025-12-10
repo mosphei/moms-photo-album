@@ -17,9 +17,9 @@ photo_person_association = Table(
 
 class PersonModel(Base):
     __tablename__ = 'people'
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), index=True, nullable=False)
-    past_names = Column(String(255))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
+    past_names: Mapped[str] = mapped_column(String(255))
     date_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     # Establishes the link to the Photo model via the association table
     photos: Mapped[list['PhotoModel']] = relationship("PhotoModel", secondary="photo_person_association", viewonly=True)
@@ -27,23 +27,16 @@ class PersonModel(Base):
 class PersonCountModel(Base):
     """
     CREATE VIEW person_photo_counts AS
-    SELECT
-        id,
-        name,
-        past_names,
-        COUNT(photo_id) AS photo_count
-    FROM
-        people 
-    LEFT JOIN
-        photo_person_association ON photo_person_association.photo_id=people.id
-    GROUP BY
-        people.id
+    SELECT person_id as id,count(*) as photo_count, people.name, past_names 
+    FROM photo_person_association 
+    LEFT JOIN people ON person_id=people.id
+    GROUP BY person_id
     """
     __tablename__ = 'person_photo_counts'
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255))
-    past_names = Column(String(255))
-    photo_count = Column(Integer)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    past_names: Mapped[str] = mapped_column(String(255))
+    photo_count: Mapped[int] = mapped_column(Integer)
 
 class PhotoModel(Base):
     __tablename__ = 'photos'

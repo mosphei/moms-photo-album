@@ -11,4 +11,4 @@ MEDIATYPES = {
     "video": [".avi", ".mp4", ".3gp", ".mov", ".mts"]
 }
 
-MIN_RELEVANCE = 50
+MIN_RELEVANCE = 70

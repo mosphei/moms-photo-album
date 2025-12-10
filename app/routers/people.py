@@ -50,6 +50,13 @@ async def get_people_list(q:str|None=None, offset: int = 0, limit: int = 100, so
     
     return paginated_response
 
+@router.get("/{person_id}",response_model=PersonSchema)
+def get_person_by_id(person_id:int, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    db_person = db.query(PersonCountModel).filter(PersonCountModel.id == person_id).first()
+    if db_person is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return db_person
+
 @router.post("/new", response_model=PersonSchema)
 def add_person(person: PersonCreate, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
     db_person = PersonModel(name=person.name, past_names=person.past_names)

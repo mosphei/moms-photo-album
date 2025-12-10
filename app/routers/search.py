@@ -1,30 +1,60 @@
 
 from datetime import datetime
-from typing import Literal
+import time
+from typing import Generic, List, Literal, TypeVar
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import and_, desc, func, nulls_last, or_, select
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import PersonModel, PhotoModel, SearchPersonModel, User, SearchPhotoModel
+from app.models import PersonCountModel, PersonModel, PhotoModel, SearchPersonModel, User, SearchPhotoModel
 from app.pagination import PaginatedResults
-from app.schemas import PersonSchema, PhotoSchema
+from app.schemas import PersonSchema, PersonSearchResult, PhotoSchema
 from app.security import get_current_user
 from rapidfuzz import fuzz, utils
-from rapidfuzz.fuzz import token_set_ratio as compare
+from rapidfuzz.fuzz import WRatio as compare
 
 from app.settings import MIN_RELEVANCE
+
+from pydantic.generics import GenericModel
+
+# Define a Type Variable (T is a common convention)
+T = TypeVar('T')
+
+# Define the generic class, inheriting from GenericModel and Generic[T]
+class SearchResult(GenericModel, Generic[T]):
+    item: T
+    relevance: float 
 
 router = APIRouter(
     prefix="/api/search",  
     tags=["search"],   
 )
 
-@router.get("/people")
+@router.get("/people", response_model=PaginatedResults[PersonSearchResult])
 async def search_people(q: str,offset: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
     q_filter_value = utils.default_process(q)
     if q_filter_value =="":
         raise HTTPException(status_code=409,detail="invalid search")
-    
+    print("# delete outdated entries")
+    start_time = time.perf_counter()
+    query=select(
+        SearchPersonModel
+        ).outerjoin(
+            PersonModel,
+            and_(
+                PersonModel.id == SearchPersonModel.person_id
+            )
+        ).where(
+            SearchPersonModel.date_seen < PersonModel.date_updated
+        )
+    outdated = db.execute(query).scalars().all()
+    for spm in outdated:
+        db.delete(spm)
+
+    elapsed_seconds = time.perf_counter() - start_time
+    print(f"### {elapsed_seconds} sec")
+    print("# find missing entries")
+    start_time = time.perf_counter()
     query = (
         select(PersonModel)
         .outerjoin(
@@ -42,37 +72,63 @@ async def search_people(q: str,offset: int = 0, limit: int = 100, db: Session = 
         )
     )
     persons_to_process = db.execute(query).scalars().all()
-    for person in persons_to_process:
-        spm = SearchPersonModel(person_id=person.id, q=q, relevance=0)
-        spm.relevance = fuzz.partial_ratio(q, str(person.name))
-        if person.past_names is not None:
-            ratio = fuzz.partial_ratio(q, str(person.past_names))
+    elapsed_seconds = time.perf_counter() - start_time
+    print(f"### {elapsed_seconds} sec")
+
+    start_time = time.perf_counter()
+    print(f"to process:{len(persons_to_process)}")
+    for row in persons_to_process:
+        spm = SearchPersonModel(person_id=row.id, q=q, relevance=0)
+        spm.relevance = compare(q, str(row.name), processor=utils.default_process)
+        if row.past_names is not None:
+            ratio = compare(q, str(row.past_names), processor=utils.default_process)
             if ratio > spm.relevance:
                 spm.relevance = ratio
         db.add(spm)
     db.commit()
-    
-    # do the query
+    elapsed_seconds = time.perf_counter() - start_time
+    print(f"### {elapsed_seconds} sec")
+
+    print("# do the query")
+    start_time = time.perf_counter()
     query = (
-        select(PersonModel)
+        select(PersonModel, SearchPersonModel.relevance)
         .outerjoin(
             SearchPersonModel,
+            PersonModel.id == SearchPersonModel.person_id
+        )
+        .where(
             and_(
-                PersonModel.id == SearchPersonModel.person_id, 
                 SearchPersonModel.q == q_filter_value,
                 SearchPersonModel.relevance > MIN_RELEVANCE
-                )
+            )
         )
         .order_by(desc(SearchPersonModel.relevance))
         .offset(offset).limit(limit)
     )
-    person_list = db.execute(query).scalars().all()
+    print(query)
+    rows =  db.execute(query).all()
     
-    count_stmt = select(func.count()).select_from(PersonModel)
+    elapsed_seconds = time.perf_counter() - start_time
+    print(f"### {elapsed_seconds} sec")
+    
+    person_list=[]
+    for row, x in rows:
+        print(f"row:{row},{x}")
+        entry = PersonSearchResult.model_validate(row)
+        entry.relevance = x
+        person_list.append(entry)
+    
+    count_stmt = select(func.count()).select_from(SearchPersonModel).where(
+            and_(
+                SearchPersonModel.q == q_filter_value,
+                SearchPersonModel.relevance > MIN_RELEVANCE
+            )
+        )
     total_count = db.execute(count_stmt).scalar()
 
     # count em
-    paginated_response = PaginatedResults[PersonSchema](
+    paginated_response = PaginatedResults[PersonSearchResult](
         items=person_list,
         total_count=total_count,
         offset=offset,
@@ -144,14 +200,14 @@ async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal
         if len(photo.people) > 0:
             names_list = [str(person.name) for person in photo.people]
             joined_names = ", ".join(names_list)
-            ratio = fuzz.partial_ratio(q, joined_names)
+            ratio = compare(q, joined_names)
             print(f"{ratio} =ratio({q},{joined_names})")
             if ratio > srcresult.relevance:
                 srcresult.relevance = ratio
             if srcresult.relevance < MIN_RELEVANCE:
                 names_list = [str(person.name) for person in photo.people]
                 joined_names = ", ".join(names_list)
-                ratio = fuzz.ratio(q, joined_names)
+                ratio = compare(q, joined_names)
                 if ratio > srcresult.relevance:
                     srcresult.relevance = ratio
         db.add(srcresult)
@@ -178,12 +234,10 @@ async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal
             # Define the ON clause for the join
             and_(
                 PhotoModel.id == SearchPhotoModel.photo_id, 
-                SearchPhotoModel.q == q_filter_value,
-                SearchPhotoModel.relevance > MIN_RELEVANCE,
-                
+                SearchPhotoModel.q == q_filter_value
                 )
         )
-        .where(and_(*filter_conditions))
+        .where(and_(*filter_conditions,SearchPhotoModel.relevance > MIN_RELEVANCE))
         # Use nulls_last() to ensure photos without a relevance score appear at the end.
         .order_by(
             sort
@@ -196,10 +250,9 @@ async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal
             # Define the ON clause for the join
             and_(
                 PhotoModel.id == SearchPhotoModel.photo_id, 
-                SearchPhotoModel.q == q_filter_value,
-                SearchPhotoModel.relevance >= MIN_RELEVANCE
+                SearchPhotoModel.q == q_filter_value
                 )
-        ).where(and_(*filter_conditions))
+        ).where(and_(*filter_conditions,SearchPhotoModel.relevance > MIN_RELEVANCE))
     total_count = db.execute(count_stmt).scalar()
 
     # count em
