@@ -8,6 +8,10 @@
 	import PhotoEditor from './PhotoEditor.svelte';
 	import { tick, type Snippet, type SvelteComponent } from 'svelte';
 	import Modal from '$lib/components/Modal.svelte';
+	import type { Person } from '$lib/models/person';
+	import type { PaginatedResults } from '$lib/models/paginated-results';
+	import { fetchApi } from '$lib/stores/common-store';
+	import PersonChooser from '$lib/components/PersonChooser.svelte';
 
 	let dialog: HTMLDialogElement;
 	let { currentPage, numPerPage, items, totalItems, criteria } = photopages;
@@ -73,9 +77,24 @@
 		const x = parseInt(event.currentTarget.value);
 		numPerPage.set(x);
 	}
-
+	// criteria
 	let afterDate = $state($criteria.after ? $criteria.after.toLocaleDateString() : undefined);
 	let beforeDate = $state($criteria.before ? $criteria.before.toLocaleDateString() : undefined);
+	let q = $state($criteria.q);
+	let searchTimerId: any = 0;
+
+	function handleSearchChange(event: Event) {
+		event.preventDefault();
+		if (searchTimerId) {
+			clearTimeout(searchTimerId);
+		}
+		searchTimerId = setTimeout(() => {
+			criteria.update((C) => {
+				C.q = q;
+				return C;
+			});
+		}, 300);
+	}
 	function handleAfterChange(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
 		const newval = event.currentTarget.value;
 		// console.log('handleAfterChange', newval);
@@ -106,6 +125,17 @@
 			});
 		}
 	}
+
+	function addFilterPerson(person: Person) {
+		criteria.update((C) => {
+			if (!C.person_ids?.length) {
+				C.person_ids = [];
+			}
+			C.person_ids.push(person.id);
+			return C;
+		});
+	}
+
 	// sorting
 	const sort_options = [
 		'Oldest',
@@ -226,6 +256,15 @@
 			</button>
 		</div>
 	{/if}
+	<div class="col-auto">
+		<input
+			class="form-control"
+			style="width:10rem;"
+			placeholder="search"
+			bind:value={q}
+			onchange={handleSearchChange}
+		/>
+	</div>
 	<!-- sort -->
 	<div class="col-auto">
 		<div class="input-group">
@@ -278,15 +317,14 @@
 						onchange={handleBeforeChange}
 					/>
 				</div>
-				<div class="mb-3">
+				<div class="mb-3" style="position:relative">
+					{#if $criteria.person_ids?.length}
+						{#each $criteria.person_ids as p}
+							<button class="btn btn-outline-secondary">Person {p}</button>
+						{/each}
+					{/if}
 					<label for="person"> By person </label>
-					<input
-						class="form-control"
-						placeholder="Enter Name"
-						name="person"
-						style="width: 10rem;"
-					/>
-					
+					<PersonChooser onselect={(p) => addFilterPerson(p)} />
 				</div>
 			</div>
 		</div>
