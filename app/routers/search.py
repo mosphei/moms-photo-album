@@ -17,14 +17,6 @@ from app.settings import MIN_RELEVANCE
 
 from pydantic.generics import GenericModel
 
-# Define a Type Variable (T is a common convention)
-T = TypeVar('T')
-
-# Define the generic class, inheriting from GenericModel and Generic[T]
-class SearchResult(GenericModel, Generic[T]):
-    item: T
-    relevance: float 
-
 router = APIRouter(
     prefix="/api/search",  
     tags=["search"],   
@@ -124,7 +116,7 @@ async def search_people(q: str,offset: int = 0, limit: int = 100, db: Session = 
     return paginated_response
 
 def fuzz_photos(q: str, filter_conditions, db: Session):
-    # delete any calulations older than date_updated
+    # delete any calculations older than date_updated
     query=select(
         SearchPhotoModel
         ).outerjoin(
@@ -204,17 +196,14 @@ async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal
     # do the query
     query = (
         select(PhotoModel, SearchPhotoModel.relevance)
-        # Perform a LEFT OUTER JOIN
         .outerjoin(
             SearchPhotoModel,
-            # Define the ON clause for the join
             and_(
                 PhotoModel.id == SearchPhotoModel.photo_id, 
                 SearchPhotoModel.q == q_filter_value
                 )
         )
         .where(and_(*filter_conditions,SearchPhotoModel.relevance > MIN_RELEVANCE))
-        # Use nulls_last() to ensure photos without a relevance score appear at the end.
         .order_by(
             sort
         )
@@ -223,7 +212,6 @@ async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal
     photo_list = db.execute(query).scalars().all()
     count_stmt = select(func.count()).select_from(PhotoModel).outerjoin(
             SearchPhotoModel,
-            # Define the ON clause for the join
             and_(
                 PhotoModel.id == SearchPhotoModel.photo_id, 
                 SearchPhotoModel.q == q_filter_value
