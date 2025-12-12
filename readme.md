@@ -3,9 +3,11 @@ It's really a database of photos to be searchable by date, person,
 as well as keywords.
 
 ## TODO
-- implement search
+- ~implement search~
 - handle videos
 - account settings page
+- thumbnails for upload
+- face recognition
 
 don't forget to start docker desktop and make sure engine is running
 
