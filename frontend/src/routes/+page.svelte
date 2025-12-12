@@ -209,32 +209,23 @@
 		selectedPhotos = [];
 		photopages.refresh();
 	}
+
+	let showFilterMenu = $state(false);
 </script>
 
 <svelte:head><title>PhotoDB - Moms Photo Album</title></svelte:head>
 <div id="filters" class="row g-3 align-items-center mb-2">
-	<div class="col-auto">Filter/Sort</div>
-	<!-- by date -->
 	<div class="col-auto">
-		<div class="input-group">
-			<span class="input-group-text">After:</span>
-			<input
-				type="date"
-				class="form-control"
-				style="width: 10rem;"
-				bind:value={afterDate}
-				onchange={handleAfterChange}
-			/>
-			<span class="input-group-text">Before:</span>
-			<input
-				type="date"
-				class="form-control"
-				style="width: 10rem;"
-				bind:value={beforeDate}
-				onchange={handleBeforeChange}
-			/>
-		</div>
+		<button class="btn btn-primary" onclick={() => (showFilterMenu = true)}> Filter </button>
 	</div>
+	{#if $criteria.after}
+		<div class="col-auto">
+			<button class="btn btn-outline-secondary">
+				After {$criteria.after.toLocaleDateString()}
+				<span class="bi bi-x"> </span>
+			</button>
+		</div>
+	{/if}
 	<!-- sort -->
 	<div class="col-auto">
 		<div class="input-group">
@@ -246,6 +237,66 @@
 			</select>
 		</div>
 	</div>
+	{#if showFilterMenu}
+		<div
+			class="offcanvas offcanvas-start show"
+			tabindex="-1"
+			id="offcanvas"
+			aria-labelledby="offcanvasLabel"
+		>
+			<div class="offcanvas-header">
+				<h5 class="offcanvas-title" id="offcanvasLabel">Filter</h5>
+				<button
+					type="button"
+					class="btn-close"
+					data-bs-dismiss="offcanvas"
+					aria-label="Close"
+					onclick={() => (showFilterMenu = false)}
+				></button>
+			</div>
+			<div class="offcanvas-body">
+				<div class="mb-3">
+					<label for="after">After:</label>
+					<input
+						type="date"
+						class="form-control"
+						style="width: 10rem;"
+						bind:value={afterDate}
+						onchange={handleAfterChange}
+						name="after"
+					/>
+				</div>
+
+				<div class="mb-3">
+					<label for="before">Before:</label>
+					<input
+						name="before"
+						type="date"
+						class="form-control"
+						style="width: 10rem;"
+						bind:value={beforeDate}
+						onchange={handleBeforeChange}
+					/>
+				</div>
+				<div class="mb-3">
+					<label for="person"> By person </label>
+					<input
+						class="form-control"
+						placeholder="Enter Name"
+						name="person"
+						style="width: 10rem;"
+					/>
+					
+				</div>
+			</div>
+		</div>
+	{/if}
+	<!-- sort -->
+</div>
+<div>
+	{($currentPage - 1) * $numPerPage + 1}
+	to {($currentPage - 1) * $numPerPage + $numPerPage}
+	of {$totalItems}
 </div>
 {#if $items.length == 0}
 	<div class="alert alert-info m-3">No photos found.</div>

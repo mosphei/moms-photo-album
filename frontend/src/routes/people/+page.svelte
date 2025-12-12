@@ -81,7 +81,7 @@
 <h1>People</h1>
 <div id="filters" class="row g-3 align-items-center mb-2">
 	<div class="col-auto">Filter/Sort</div>
-	<!-- by date -->
+	<!-- by name -->
 	<div class="col-auto">
 		<div class="input-group">
 			<input type="text" name="q" bind:value={q} placeholder="Name" class="form-control" />

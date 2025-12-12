@@ -11,7 +11,7 @@ from app.pagination import PaginatedResults
 from app.schemas import PersonSchema, PersonSearchResult, PhotoSchema
 from app.security import get_current_user
 from rapidfuzz import fuzz, utils
-from rapidfuzz.fuzz import WRatio as compare
+from rapidfuzz.fuzz import partial_ratio as compare
 
 from app.settings import MIN_RELEVANCE
 
@@ -30,13 +30,7 @@ router = APIRouter(
     tags=["search"],   
 )
 
-@router.get("/people", response_model=PaginatedResults[PersonSearchResult])
-async def search_people(q: str,offset: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    q_filter_value = utils.default_process(q)
-    if q_filter_value =="":
-        raise HTTPException(status_code=409,detail="invalid search")
-    print("# delete outdated entries")
-    start_time = time.perf_counter()
+def fuzz_people(q: str, db: Session):
     query=select(
         SearchPersonModel
         ).outerjoin(
@@ -51,17 +45,13 @@ async def search_people(q: str,offset: int = 0, limit: int = 100, db: Session = 
     for spm in outdated:
         db.delete(spm)
 
-    elapsed_seconds = time.perf_counter() - start_time
-    print(f"### {elapsed_seconds} sec")
-    print("# find missing entries")
-    start_time = time.perf_counter()
     query = (
         select(PersonModel)
         .outerjoin(
             SearchPersonModel,
             and_(
                 PersonModel.id == SearchPersonModel.person_id,
-                SearchPersonModel.q == q_filter_value,
+                SearchPersonModel.q == q,
             )
         )
         .where(
@@ -72,11 +62,7 @@ async def search_people(q: str,offset: int = 0, limit: int = 100, db: Session = 
         )
     )
     persons_to_process = db.execute(query).scalars().all()
-    elapsed_seconds = time.perf_counter() - start_time
-    print(f"### {elapsed_seconds} sec")
 
-    start_time = time.perf_counter()
-    print(f"to process:{len(persons_to_process)}")
     for row in persons_to_process:
         spm = SearchPersonModel(person_id=row.id, q=q, relevance=0)
         spm.relevance = compare(q, str(row.name), processor=utils.default_process)
@@ -86,11 +72,17 @@ async def search_people(q: str,offset: int = 0, limit: int = 100, db: Session = 
                 spm.relevance = ratio
         db.add(spm)
     db.commit()
-    elapsed_seconds = time.perf_counter() - start_time
-    print(f"### {elapsed_seconds} sec")
 
-    print("# do the query")
-    start_time = time.perf_counter()
+@router.get("/people", response_model=PaginatedResults[PersonSearchResult])
+async def search_people(q: str,offset: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    q_filter_value = utils.default_process(q)
+    if q_filter_value =="":
+        raise HTTPException(status_code=409,detail="invalid search")
+    
+    # do the search
+    fuzz_people(q_filter_value, db)
+
+    # do the query
     query = (
         select(PersonModel, SearchPersonModel.relevance)
         .outerjoin(
@@ -106,14 +98,9 @@ async def search_people(q: str,offset: int = 0, limit: int = 100, db: Session = 
         .order_by(desc(SearchPersonModel.relevance))
         .offset(offset).limit(limit)
     )
-    print(query)
-    rows =  db.execute(query).all()
-    
-    elapsed_seconds = time.perf_counter() - start_time
-    print(f"### {elapsed_seconds} sec")
     
     person_list=[]
-    for row, x in rows:
+    for row, x in db.execute(query).all():
         print(f"row:{row},{x}")
         entry = PersonSearchResult.model_validate(row)
         entry.relevance = x
@@ -136,19 +123,7 @@ async def search_people(q: str,offset: int = 0, limit: int = 100, db: Session = 
     )
     return paginated_response
 
-    
-@router.get("/images")
-async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal["date_taken", "date_uploaded", "date_updated", "relevance"] = "relevance", sortDescending: bool = False, after: datetime  | None = None, before: datetime  | None = None, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    filter_conditions = [PhotoModel.user_id == current_user.id]
-    if after is not None:
-        filter_conditions.append(PhotoModel.date_taken >= after)
-    if before is not None:
-        filter_conditions.append(PhotoModel.date_taken < before)
-
-    # do the fuzzy
-    q_filter_value = utils.default_process(q)
-    if q_filter_value == "":
-        raise HTTPException(status_code=409,detail="invalid search")
+def fuzz_photos(q: str, filter_conditions, db: Session):
     # delete any calulations older than date_updated
     query=select(
         SearchPhotoModel
@@ -169,7 +144,7 @@ async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal
             SearchPhotoModel,
             and_(
                 PhotoModel.id == SearchPhotoModel.photo_id,
-                SearchPhotoModel.q == q_filter_value
+                SearchPhotoModel.q == q
             )
         )
         .where(
@@ -188,30 +163,31 @@ async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal
     for photo in photos_to_process:
         srcresult=SearchPhotoModel()
         srcresult.photo_id = photo.id
-        srcresult.q = q_filter_value
+        srcresult.q = q
         srcresult.relevance = 0
         if photo.description is not None:
-            srcresult.relevance = compare(q_filter_value, photo.description, processor=utils.default_process)
+            srcresult.relevance = compare(q, photo.description, processor=utils.default_process)
         if photo.filename is not None:
-            ratio = compare(q_filter_value, photo.filename, processor=utils.default_process)
+            ratio = compare(q, photo.filename, processor=utils.default_process)
             if (ratio > srcresult.relevance):
                 srcresult.relevance = ratio
-        
-        if len(photo.people) > 0:
-            names_list = [str(person.name) for person in photo.people]
-            joined_names = ", ".join(names_list)
-            ratio = compare(q, joined_names)
-            print(f"{ratio} =ratio({q},{joined_names})")
-            if ratio > srcresult.relevance:
-                srcresult.relevance = ratio
-            if srcresult.relevance < MIN_RELEVANCE:
-                names_list = [str(person.name) for person in photo.people]
-                joined_names = ", ".join(names_list)
-                ratio = compare(q, joined_names)
-                if ratio > srcresult.relevance:
-                    srcresult.relevance = ratio
         db.add(srcresult)
     db.commit()
+
+@router.get("/images")
+async def search_images(q: str,offset: int = 0, limit: int = 100, sortBy:Literal["date_taken", "date_uploaded", "date_updated", "relevance"] = "relevance", sortDescending: bool = False, after: datetime  | None = None, before: datetime  | None = None, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+    filter_conditions = [PhotoModel.user_id == current_user.id]
+    if after is not None:
+        filter_conditions.append(PhotoModel.date_taken >= after)
+    if before is not None:
+        filter_conditions.append(PhotoModel.date_taken < before)
+
+    # do the fuzzy
+    q_filter_value = utils.default_process(q)
+    if q_filter_value == "":
+        raise HTTPException(status_code=409,detail="invalid search")
+    fuzz_photos(q_filter_value,filter_conditions, db)
+
     #sort
     sort = desc(SearchPhotoModel.relevance)
     if sortBy == "date_taken":
