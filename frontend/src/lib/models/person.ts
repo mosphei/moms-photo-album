@@ -4,3 +4,4 @@ export interface Person {
 	past_names?: string;
 	photo_count?: number;
 }
+type searchPerson = Person & { relevance: number };

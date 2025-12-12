@@ -5,13 +5,15 @@ import { derived, get, writable, type Writable } from 'svelte/store';
 import { fetchApi } from './common-store';
 
 interface ICriteria {
+	q?: string;
+	person_ids?: number[];
 	after?: Date;
 	before?: Date;
 	sortBy: 'date_taken' | 'date_uploaded' | 'date_updated';
 	sortDescending: boolean;
 }
 
-async function getPhotos(
+export async function getPhotos(
 	page: number,
 	pagesize: number,
 	criteria: ICriteria | undefined = undefined
@@ -26,6 +28,12 @@ async function getPhotos(
 		limit: `${pagesize}`
 	});
 	if (criteria) {
+		if (criteria.q && criteria.q.length > 2) {
+			urlParams.append('q', criteria.q);
+		}
+		if (criteria.person_ids && criteria.person_ids.length) {
+			criteria.person_ids.forEach((id) => urlParams.append('person_id', id.toString()));
+		}
 		if (criteria.after) {
 			urlParams.append('after', dateFormat(criteria.after).toSQLDate());
 		}

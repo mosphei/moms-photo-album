@@ -8,6 +8,12 @@
 	import PhotoEditor from './PhotoEditor.svelte';
 	import { tick, type Snippet, type SvelteComponent } from 'svelte';
 	import Modal from '$lib/components/Modal.svelte';
+	import type { Person } from '$lib/models/person';
+	import type { PaginatedResults } from '$lib/models/paginated-results';
+	import { fetchApi } from '$lib/stores/common-store';
+	import PersonChooser from '$lib/components/PersonChooser.svelte';
+	import { fly } from 'svelte/transition';
+	import { clickOutside } from '$lib/click-outside';
 
 	let dialog: HTMLDialogElement;
 	let { currentPage, numPerPage, items, totalItems, criteria } = photopages;
@@ -73,9 +79,24 @@
 		const x = parseInt(event.currentTarget.value);
 		numPerPage.set(x);
 	}
-
+	// criteria
 	let afterDate = $state($criteria.after ? $criteria.after.toLocaleDateString() : undefined);
 	let beforeDate = $state($criteria.before ? $criteria.before.toLocaleDateString() : undefined);
+	let q = $state($criteria.q);
+	let searchTimerId: any = 0;
+
+	function handleSearchChange(event: Event) {
+		event.preventDefault();
+		if (searchTimerId) {
+			clearTimeout(searchTimerId);
+		}
+		searchTimerId = setTimeout(() => {
+			criteria.update((C) => {
+				C.q = q;
+				return C;
+			});
+		}, 300);
+	}
 	function handleAfterChange(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
 		const newval = event.currentTarget.value;
 		// console.log('handleAfterChange', newval);
@@ -106,6 +127,22 @@
 			});
 		}
 	}
+	let filterPersons: Person[] = $state([]);
+	function addFilterPerson(person: Person) {
+		filterPersons = Array.from(new Set([...filterPersons, person]));
+		criteria.update((C) => {
+			C.person_ids = filterPersons.map((p) => p.id);
+			return C;
+		});
+	}
+	function removeFilterPerson(person: Person) {
+		filterPersons = filterPersons.filter((p) => p.id !== person.id);
+		criteria.update((C) => {
+			C.person_ids = filterPersons.map((p) => p.id);
+			return C;
+		});
+	}
+
 	// sorting
 	const sort_options = [
 		'Oldest',
@@ -209,31 +246,45 @@
 		selectedPhotos = [];
 		photopages.refresh();
 	}
+
+	let showFilterMenu = $state(false);
 </script>
 
 <svelte:head><title>PhotoDB - Moms Photo Album</title></svelte:head>
 <div id="filters" class="row g-3 align-items-center mb-2">
-	<div class="col-auto">Filter/Sort</div>
-	<!-- by date -->
 	<div class="col-auto">
-		<div class="input-group">
-			<span class="input-group-text">After:</span>
-			<input
-				type="date"
-				class="form-control"
-				style="width: 10rem;"
-				bind:value={afterDate}
-				onchange={handleAfterChange}
-			/>
-			<span class="input-group-text">Before:</span>
-			<input
-				type="date"
-				class="form-control"
-				style="width: 10rem;"
-				bind:value={beforeDate}
-				onchange={handleBeforeChange}
-			/>
+		<button class="btn btn-primary" onclick={() => (showFilterMenu = true)}> Filter </button>
+	</div>
+	{#if $criteria.after}
+		<div class="col-auto">
+			<button class="btn btn-outline-secondary">
+				After {$criteria.after.toLocaleDateString()}
+				<span class="bi bi-x"> </span>
+			</button>
 		</div>
+	{/if}
+	{#if filterPersons.length}
+		<div class="col-auto">
+			{#each filterPersons as p}
+				<button
+					class="btn btn-outline-secondary"
+					title="remove"
+					onclick={() => removeFilterPerson(p)}
+				>
+					{p.name}
+					<span class="bi bi-x"></span>
+				</button>
+			{/each}
+		</div>
+	{/if}
+	<div class="col-auto">
+		<input
+			class="form-control"
+			style="width:10rem;"
+			placeholder="search"
+			bind:value={q}
+			onchange={handleSearchChange}
+		/>
 	</div>
 	<!-- sort -->
 	<div class="col-auto">
@@ -246,6 +297,76 @@
 			</select>
 		</div>
 	</div>
+	{#if showFilterMenu}
+		<div
+			transition:fly|local={{ x: -200, duration: 500 }}
+			class="offcanvas offcanvas-start show"
+			tabindex="-1"
+			id="offcanvas"
+			aria-labelledby="offcanvasLabel"
+			use:clickOutside={() => (showFilterMenu = false)}
+		>
+			<div class="offcanvas-header">
+				<h5 class="offcanvas-title" id="offcanvasLabel">Filter</h5>
+				<button
+					type="button"
+					class="btn-close"
+					data-bs-dismiss="offcanvas"
+					aria-label="Close"
+					onclick={() => (showFilterMenu = false)}
+				></button>
+			</div>
+			<div class="offcanvas-body">
+				<div class="mb-3">
+					<label for="after">After:</label>
+					<input
+						type="date"
+						class="form-control"
+						style="width: 10rem;"
+						bind:value={afterDate}
+						onchange={handleAfterChange}
+						name="after"
+					/>
+				</div>
+
+				<div class="mb-3">
+					<label for="before">Before:</label>
+					<input
+						name="before"
+						type="date"
+						class="form-control"
+						style="width: 10rem;"
+						bind:value={beforeDate}
+						onchange={handleBeforeChange}
+					/>
+				</div>
+				<div class="mb-3" style="position:relative">
+					{#if filterPersons.length}
+						<div>
+							{#each filterPersons as p}
+								<button
+									class="btn btn-outline-secondary"
+									title="remove"
+									onclick={() => removeFilterPerson(p)}
+								>
+									{p.name}
+									<span class="bi bi-x"></span>
+								</button>
+							{/each}
+						</div>
+					{/if}
+					<label for="person"> By person </label>
+					<PersonChooser onselect={(p) => addFilterPerson(p)} />
+				</div>
+			</div>
+		</div>
+	{/if}
+	<!-- sort -->
+</div>
+<div>
+	{($currentPage - 1) * $numPerPage + 1}
+	to {($currentPage - 1) * $numPerPage + $numPerPage}
+	of {$totalItems}
 </div>
 {#if $items.length == 0}
 	<div class="alert alert-info m-3">No photos found.</div>
@@ -253,13 +374,15 @@
 {#each $items as photo}
 	<div style="float:left; position:relative; padding:.5rem">
 		<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
-		<input
-			type="checkbox"
-			style="position:absolute;top:1rem;left:1rem"
-			bind:group={selectedPhotos}
-			value={photo.id}
-			onclick={handleCheckboxClick}
-		/>
+		<label style="position:absolute;top:0;left:0;padding:1rem" for="select_{photo.id}">
+			<input
+				type="checkbox"
+				id="select_{photo.id}"
+				bind:group={selectedPhotos}
+				value={photo.id}
+				onclick={handleCheckboxClick}
+			/>
+		</label>
 	</div>
 {/each}
 {#if currentPhotoIndex >= 0}
