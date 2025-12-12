@@ -48,7 +48,7 @@
 	let menuElement: HTMLDivElement | undefined = $state();
 	let buttonElements: HTMLButtonElement[] = $state([]);
 	function handleKeyDown(event: KeyboardEvent & { currentTarget: EventTarget }) {
-		console.log(event.key);
+		// console.log(event.key);
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			clearSearch();

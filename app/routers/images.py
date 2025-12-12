@@ -269,9 +269,14 @@ async def get_image_list(q: str |None = None, person_id: Optional[List[int]] = Q
                         *filter_conditions,
                         SearchPhotoModel.relevance > MIN_RELEVANCE
                     )
+                ).offset(
+                    offset
+                ).limit(
+                    limit
+                ).order_by(
+                    SearchPhotoModel.relevance.desc(),
+                    sort
                 )
-            # change the sort
-            sort = (SearchPhotoModel.relevance.desc(), sort)
 
             # count 
             count_stmt = select(func.count()).select_from(PhotoModel).outerjoin(
@@ -283,6 +288,7 @@ async def get_image_list(q: str |None = None, person_id: Optional[List[int]] = Q
                     )
             ).where(and_(*filter_conditions,SearchPhotoModel.relevance > MIN_RELEVANCE))
     
+    print(items_stmt)
     photo_list = db.execute(items_stmt).scalars().all()
     total_count = db.execute(count_stmt).scalar()
     

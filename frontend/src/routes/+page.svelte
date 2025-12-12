@@ -12,6 +12,8 @@
 	import type { PaginatedResults } from '$lib/models/paginated-results';
 	import { fetchApi } from '$lib/stores/common-store';
 	import PersonChooser from '$lib/components/PersonChooser.svelte';
+	import { fly } from 'svelte/transition';
+	import { clickOutside } from '$lib/click-outside';
 
 	let dialog: HTMLDialogElement;
 	let { currentPage, numPerPage, items, totalItems, criteria } = photopages;
@@ -125,13 +127,18 @@
 			});
 		}
 	}
-
+	let filterPersons: Person[] = $state([]);
 	function addFilterPerson(person: Person) {
+		filterPersons = Array.from(new Set([...filterPersons, person]));
 		criteria.update((C) => {
-			if (!C.person_ids?.length) {
-				C.person_ids = [];
-			}
-			C.person_ids.push(person.id);
+			C.person_ids = filterPersons.map((p) => p.id);
+			return C;
+		});
+	}
+	function removeFilterPerson(person: Person) {
+		filterPersons = filterPersons.filter((p) => p.id !== person.id);
+		criteria.update((C) => {
+			C.person_ids = filterPersons.map((p) => p.id);
 			return C;
 		});
 	}
@@ -256,6 +263,20 @@
 			</button>
 		</div>
 	{/if}
+	{#if filterPersons.length}
+		<div class="col-auto">
+			{#each filterPersons as p}
+				<button
+					class="btn btn-outline-secondary"
+					title="remove"
+					onclick={() => removeFilterPerson(p)}
+				>
+					{p.name}
+					<span class="bi bi-x"></span>
+				</button>
+			{/each}
+		</div>
+	{/if}
 	<div class="col-auto">
 		<input
 			class="form-control"
@@ -278,10 +299,12 @@
 	</div>
 	{#if showFilterMenu}
 		<div
+			transition:fly|local={{ x: -200, duration: 500 }}
 			class="offcanvas offcanvas-start show"
 			tabindex="-1"
 			id="offcanvas"
 			aria-labelledby="offcanvasLabel"
+			use:clickOutside={() => (showFilterMenu = false)}
 		>
 			<div class="offcanvas-header">
 				<h5 class="offcanvas-title" id="offcanvasLabel">Filter</h5>
@@ -318,10 +341,19 @@
 					/>
 				</div>
 				<div class="mb-3" style="position:relative">
-					{#if $criteria.person_ids?.length}
-						{#each $criteria.person_ids as p}
-							<button class="btn btn-outline-secondary">Person {p}</button>
-						{/each}
+					{#if filterPersons.length}
+						<div>
+							{#each filterPersons as p}
+								<button
+									class="btn btn-outline-secondary"
+									title="remove"
+									onclick={() => removeFilterPerson(p)}
+								>
+									{p.name}
+									<span class="bi bi-x"></span>
+								</button>
+							{/each}
+						</div>
 					{/if}
 					<label for="person"> By person </label>
 					<PersonChooser onselect={(p) => addFilterPerson(p)} />
@@ -342,13 +374,15 @@
 {#each $items as photo}
 	<div style="float:left; position:relative; padding:.5rem">
 		<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
-		<input
-			type="checkbox"
-			style="position:absolute;top:1rem;left:1rem"
-			bind:group={selectedPhotos}
-			value={photo.id}
-			onclick={handleCheckboxClick}
-		/>
+		<label style="position:absolute;top:0;left:0;padding:1rem" for="select_{photo.id}">
+			<input
+				type="checkbox"
+				id="select_{photo.id}"
+				bind:group={selectedPhotos}
+				value={photo.id}
+				onclick={handleCheckboxClick}
+			/>
+		</label>
 	</div>
 {/each}
 {#if currentPhotoIndex >= 0}
