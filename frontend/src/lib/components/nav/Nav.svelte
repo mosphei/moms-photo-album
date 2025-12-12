@@ -48,6 +48,9 @@
 				<li class="nav-item">
 					<a href={resolve('/upload')} class="nav-link">Upload</a>
 				</li>
+				<li class="nav-item">
+					<a href={resolve('/people')} class="nav-link">People</a>
+				</li>
 				<!--
 				<NavDropdown text="Dropdown">
 					<a class="dropdown-item" href="/xxx">X</a>
@@ -61,8 +64,14 @@
 				</li> 
 				-->
 			</ul>
-			<form class="d-flex me-2" role="search">
-				<input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
+			<form class="d-flex me-2" role="search" action="/search">
+				<input
+					class="form-control me-2"
+					type="search"
+					placeholder="Search"
+					aria-label="Search"
+					name="q"
+				/>
 				<button class="btn btn-outline-success" type="submit">Search</button>
 			</form>
 			{#if $me && $session}

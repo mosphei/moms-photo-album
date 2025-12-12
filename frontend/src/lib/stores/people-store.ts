@@ -1,23 +1,29 @@
 import type { PaginatedResults } from '$lib/models/paginated-results';
-import type { Photo } from '$lib/models/photo';
+import type { Person } from '$lib/models/person';
 import { dateFormat, dateTimeReviver, loadFromLocalstorage, setLocalstorage } from '$lib/utils';
-import { derived, get, writable, type Writable } from 'svelte/store';
+import { derived, get, writable } from 'svelte/store';
 import { fetchApi } from './common-store';
 
-interface ICriteria {
+const itemList = writable([] as Person[]);
+const initialNumPerPage = loadFromLocalstorage('numPerPage') || '10';
+const numPerPage = writable(parseInt(initialNumPerPage));
+numPerPage.subscribe((n) => setLocalstorage('numPerPage', n));
+const currentPage = writable(1);
+const totalItems = writable(null as null | number);
+const criteria = writable({ sortBy: 'name', sortDescending: false } as ICriteria);
+
+export interface ICriteria {
 	q?: string;
-	person_ids?: number[];
-	after?: Date;
-	before?: Date;
-	sortBy: 'date_taken' | 'date_uploaded' | 'date_updated';
+	sortBy: 'name';
 	sortDescending: boolean;
 }
 
-export async function getPhotos(
+export async function getPeople(
 	page: number,
 	pagesize: number,
 	criteria: ICriteria | undefined = undefined
-): Promise<PaginatedResults<Photo> | null> {
+): Promise<PaginatedResults<Person> | null> {
+	// console.log('getPeople');
 	if (page < 1) {
 		return null;
 	}
@@ -28,17 +34,8 @@ export async function getPhotos(
 		limit: `${pagesize}`
 	});
 	if (criteria) {
-		if (criteria.q && criteria.q.length > 2) {
+		if (criteria.q) {
 			urlParams.append('q', criteria.q);
-		}
-		if (criteria.person_ids && criteria.person_ids.length) {
-			criteria.person_ids.forEach((id) => urlParams.append('person_id', id.toString()));
-		}
-		if (criteria.after) {
-			urlParams.append('after', dateFormat(criteria.after).toSQLDate());
-		}
-		if (criteria.before) {
-			urlParams.append('before', dateFormat(criteria.before).toSQLDate());
 		}
 		if (criteria.sortBy) {
 			urlParams.append('sortBy', criteria.sortBy);
@@ -47,34 +44,30 @@ export async function getPhotos(
 			urlParams.append('sortDescending', criteria.sortDescending ? 'True' : 'False');
 		}
 	}
-	const url = `/api/images/?${urlParams.toString()}`;
+	const url = `/api/people/?${urlParams.toString()}`;
 	console.log(`url:${url}`);
 	const response = await fetchApi(url, {
 		headers: { accept: 'application/json' }
 	});
-	const result: PaginatedResults<Photo> = await JSON.parse(response || '[]', dateTimeReviver);
-	console.log(`getPhotos`, result);
+	const result: PaginatedResults<Person> = await JSON.parse(response || '[]', dateTimeReviver);
+	console.log(`getPeople`, result);
 	return result;
 }
 
-const itemList = writable([] as Photo[]);
-const initialNumPerPage = loadFromLocalstorage('numPerPage') || '10';
-const numPerPage = writable(parseInt(initialNumPerPage));
-numPerPage.subscribe((n) => setLocalstorage('numPerPage', n));
-const currentPage = writable(0);
-const totalItems = writable(null as null | number);
-const criteria = writable({ sortBy: 'date_taken', sortDescending: false } as ICriteria);
-//debounce?
-let fetchTimerId: any = undefined;
 async function refreshItems(_page: number, _pagesize: number, _criteria: ICriteria) {
-	const result = await getPhotos(_page, _pagesize, _criteria);
+	// console.log(`refresh(${_page},${_pagesize},${_criteria.sortBy})`)
+	const result = await getPeople(_page, _pagesize, _criteria);
 	if (result) {
 		itemList.set(result.items);
 		if (result.total_count) {
 			totalItems.set(result.total_count);
 		}
+	} else {
+		console.log('no results!');
 	}
 }
+
+let fetchTimerId: any = undefined;
 const changes = derived(
 	[currentPage, numPerPage, criteria],
 	([CurrentPage, NumPerPage, Criteria]) => {
@@ -87,7 +80,7 @@ const changes = derived(
 );
 changes.subscribe((x) => console.log('changed'));
 
-export const photopages = {
+export const peoplepages = {
 	items: derived(itemList, (_) => _),
 	numPerPage,
 	currentPage,
@@ -95,20 +88,21 @@ export const photopages = {
 	criteria,
 	refresh: async () => await refreshItems(get(currentPage), get(numPerPage), get(criteria))
 };
-// load the first page
-currentPage.set(1);
 
-export async function savePhoto(id: number, photo: Partial<Photo>) {
-	console.log('saving photo', photo);
-	const response = await fetchApi(`/api/images/${id}`, {
+// fetch at least once
+setTimeout(() => peoplepages.refresh, 10);
+
+export async function savePerson(person: Person) {
+	console.log('saving person', person);
+	const response = await fetchApi(`/api/people/${person.id}`, {
 		method: 'PATCH',
-		body: JSON.stringify(photo),
+		body: JSON.stringify(person),
 		headers: {
 			'Content-Type': 'application/json'
 		}
 	});
 	if (response) {
-		const result: Photo = JSON.parse(response, dateTimeReviver);
+		const result: Person = JSON.parse(response, dateTimeReviver);
 		itemList.update((items) => items.map((itm) => (itm.id === result.id ? result : itm)));
 	}
 	console.log('save response', response);

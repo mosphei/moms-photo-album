@@ -7,6 +7,7 @@ class PersonSchema(BaseModel):
     id: int
     name: str
     past_names: Optional[str] = None
+    photo_count: Optional[int] = None
 
     class Config:
         # Allows Pydantic to read ORM objects directly
@@ -21,6 +22,9 @@ class PersonUpdate(BaseModel):
     name: Optional[str] = None
     past_names: Optional[str] = None
 
+class PersonSearchResult(PersonSchema):
+    relevance: float = 0
+    
 # Schema for a single image (used for reading data)
 class PhotoSchema(BaseModel):
     id: int
@@ -57,7 +61,7 @@ class PhotoUpdate(BaseModel):
     class Config:
         # Allows Pydantic to read ORM objects directly
         from_attributes = True
-        
+
 class UserCreate(BaseModel):
     username: str
     password: str

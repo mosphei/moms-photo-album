@@ -3,8 +3,8 @@ import hashlib
 import json
 import os
 import shutil
-from typing import List, Literal
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from typing import List, Literal, Optional
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, select
@@ -12,14 +12,17 @@ from PIL import Image, ImageOps
 import imagehash
 import io
 import textwrap
+from rapidfuzz import utils
+
+from app.routers.search import fuzz_photos
 
 from ..pagination import PaginatedResults
 
 from .get_date import get_image_date
-from ..settings import IMAGESIZES, MEDIADIR
+from ..settings import IMAGESIZES, MEDIADIR, MEDIATYPES, MIN_RELEVANCE
 from ..security import get_current_user
 from ..schemas import PhotoSchema, PhotoUpdate
-from ..models import PhotoModel, User, PersonModel
+from ..models import PhotoModel, photo_person_association, SearchPhotoModel, User, PersonModel
 from ..database import get_db, update_data_in_db
 
 router = APIRouter(
@@ -40,10 +43,7 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         img_hash = imagehash.average_hash(img)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
-
-    # date
-    date_taken = get_image_date(img, filename)
-
+    
     # try and get exact matches
     dupe:PhotoModel|None = None
     dupe = db.query(PhotoModel).filter(and_(
@@ -52,10 +52,11 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         )).first()
     
     if not dupe is None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, # 409
-            detail=f"duplicate of file {dupe.id}"
-        )
+        #this file has already been uploaded
+        return dupe
+    
+    # date
+    date_taken = get_image_date(img, filename)
     if date_taken:
         parent_dirs = os.path.join(f"{date_taken.year:04d}", f"{date_taken.month:02d}")
     else:
@@ -63,6 +64,8 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         left_12 = base_name[:12]
         chunks_list = textwrap.wrap(left_12, 4)
         parent_dirs = os.path.join(*chunks_list)
+        # set a date
+        date_taken=datetime(1900, 1, 1, 0, 0, 0)
 
     upload_dir = os.path.join(MEDIADIR,str(current_user.id),parent_dirs)
     os.makedirs(upload_dir, exist_ok=True)
@@ -199,10 +202,12 @@ async def get_image_file(size: str, image_id: int, filename: str, db: Session = 
         if not os.path.exists(thumb_location):
             "create the thumbnail"
             os.makedirs(os.path.join(MEDIADIR,"cache"), exist_ok=True)
-            with Image.open(file_location) as img:
-                img_transposed = ImageOps.exif_transpose(img)
-                img_transposed.thumbnail(IMAGESIZES[size], Image.Resampling.LANCZOS)
-                img_transposed.save(thumb_location)
+            basename, ext = os.path.splitext(image.filename)
+            if ext.lower() in MEDIATYPES["image"]:
+                with Image.open(file_location) as img:
+                    img_transposed = ImageOps.exif_transpose(img)
+                    img_transposed.thumbnail(IMAGESIZES[size], Image.Resampling.LANCZOS)
+                    img_transposed.save(thumb_location)
         return FileResponse(thumb_location)
     if size == "o":
         return FileResponse(file_location)
@@ -210,12 +215,23 @@ async def get_image_file(size: str, image_id: int, filename: str, db: Session = 
 
 # Get a list of images
 @router.get("/", response_model=PaginatedResults[PhotoSchema])
-async def get_image_list(offset: int = 0, limit: int = 100, sortBy:Literal["date_taken", "date_uploaded", "date_updated"] = "date_taken", sortDescending: bool = False, after: datetime  | None = None, before: datetime  | None = None, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
+async def get_image_list(q: str |None = None, person_id: Optional[List[int]] = Query(default = None), offset: int = 0, limit: int = 100, sortBy:Literal["date_taken", "date_uploaded", "date_updated"] = "date_taken", sortDescending: bool = False, after: datetime  | None = None, before: datetime  | None = None, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
     filter_conditions = [PhotoModel.user_id == current_user.id]
     if after is not None:
         filter_conditions.append(PhotoModel.date_taken >= after)
     if before is not None:
         filter_conditions.append(PhotoModel.date_taken < before)
+    if person_id is not None:
+        for p_id in person_id:
+            subquery=select(
+                        photo_person_association.c.photo_id
+                    ).where(
+                        photo_person_association.c.person_id == p_id
+                    )
+            print(subquery)
+            filter_conditions.append(
+                PhotoModel.id.in_(subquery)
+            )
 
     #sort
     sort = PhotoModel.date_taken.asc()
@@ -232,9 +248,48 @@ async def get_image_list(offset: int = 0, limit: int = 100, sortBy:Literal["date
             sort = PhotoModel.date_uploaded.desc()
 
     items_stmt = select(PhotoModel).where(and_(*filter_conditions)).offset(offset).limit(limit).order_by(sort)
-    photo_list = db.execute(items_stmt).scalars().all()
-
     count_stmt = select(func.count()).select_from(PhotoModel).where(and_(*filter_conditions))
+    if q is not None:
+        q_filter_value = utils.default_process(q)
+        if q_filter_value is not None:
+            # preload the search
+            fuzz_photos(q_filter_value, filter_conditions, db)
+            # change the query
+            items_stmt = select(
+                PhotoModel, SearchPhotoModel.relevance
+                ).outerjoin(
+                    SearchPhotoModel,
+                    # Define the ON clause for the join
+                    and_(
+                        PhotoModel.id == SearchPhotoModel.photo_id, 
+                        SearchPhotoModel.q == q_filter_value
+                        )
+                ).where(
+                    and_(
+                        *filter_conditions,
+                        SearchPhotoModel.relevance > MIN_RELEVANCE
+                    )
+                ).offset(
+                    offset
+                ).limit(
+                    limit
+                ).order_by(
+                    SearchPhotoModel.relevance.desc(),
+                    sort
+                )
+
+            # count 
+            count_stmt = select(func.count()).select_from(PhotoModel).outerjoin(
+                SearchPhotoModel,
+                # Define the ON clause for the join
+                and_(
+                    PhotoModel.id == SearchPhotoModel.photo_id, 
+                    SearchPhotoModel.q == q_filter_value
+                    )
+            ).where(and_(*filter_conditions,SearchPhotoModel.relevance > MIN_RELEVANCE))
+    
+    print(items_stmt)
+    photo_list = db.execute(items_stmt).scalars().all()
     total_count = db.execute(count_stmt).scalar()
     
     paginated_response = PaginatedResults[PhotoSchema](
