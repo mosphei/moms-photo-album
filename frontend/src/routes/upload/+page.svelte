@@ -3,8 +3,7 @@
 	import {
 		fakeUploadFileWithProgress,
 		uploadFileWithProgress,
-		type IUpload,
-		type IUploadResult
+		type IUpload
 	} from './upload-file';
 	import UploadCard, { type IFileInfo } from './UploadCard.svelte';
 	import { photopages } from '$lib/stores/photo-store';
@@ -67,7 +66,7 @@
 			status: 'uploading',
 			percentComplete: 0
 		});
-		uploadFileWithProgress('/api/images/upload/', fileEntry.file, (percentComplete) => {
+		uploadFileWithProgress('/api/upload/', fileEntry.file, (percentComplete) => {
 			//console.log(`${fileEntry.filename}=${percentComplete}`);
 			fileEntry.uploadStatus.set({
 				status: 'uploading',

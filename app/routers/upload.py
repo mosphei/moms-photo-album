@@ -178,6 +178,9 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
             print(metadata)
             if metadata is not None:
                 date_taken = extract_creation_time(metadata)
+            if date_taken is None:
+                # filename?
+                date_taken = get_date_from_filename(filename)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
@@ -226,7 +229,8 @@ async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_d
         date_taken=date_taken, 
         hash=img_hash,
         md5sum=md5sum,
-        size=size
+        size=size,
+        content_type=content_type
         )
     db.add(db_image)
     db.commit()

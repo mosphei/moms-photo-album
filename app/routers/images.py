@@ -1,11 +1,8 @@
 from datetime import datetime
-import hashlib
-import json
 import os
 import shutil
-import tempfile
 from typing import List, Literal, Optional
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, select
@@ -13,6 +10,7 @@ from PIL import Image, ImageOps
 from rapidfuzz import utils
 
 
+from app.media_utils import create_video_thumbnail
 from app.routers.search import fuzz_photos
 
 from ..pagination import PaginatedResults
@@ -112,25 +110,31 @@ async def delete_photo(photo_id: int, db: Session = Depends(get_db), current_use
 # Retrieve image file endpoint
 @router.get("/files/{size}/{image_id}/{filename}")
 async def get_image_file(size: str, image_id: int, filename: str, db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    image = db.query(PhotoModel).filter(and_(PhotoModel.id == image_id, PhotoModel.user_id == current_user.id)).first()
-    if not image:
+    db_photo = db.query(PhotoModel).filter(and_(PhotoModel.id == image_id, PhotoModel.user_id == current_user.id)).first()
+    if not db_photo:
         raise HTTPException(status_code=404, detail="Image not found")
     # construct the location
     userdir = os.path.join(MEDIADIR,str(current_user.id))
-    file_location = os.path.join(userdir,image.file_path)
+    file_location = os.path.join(userdir,db_photo.file_path)
 
     if size in IMAGESIZES:
-        filename = f"{image.id}_{size}.jpg"
+        filename = f"{db_photo.id}_{size}.jpg"
         thumb_location = os.path.join(MEDIADIR,"cache",filename)
         if not os.path.exists(thumb_location):
             "create the thumbnail"
             os.makedirs(os.path.join(MEDIADIR,"cache"), exist_ok=True)
-            basename, ext = os.path.splitext(image.filename)
-            if ext.lower() in MEDIATYPES["image"]:
-                with Image.open(file_location) as img:
-                    img_transposed = ImageOps.exif_transpose(img)
-                    img_transposed.thumbnail(IMAGESIZES[size], Image.Resampling.LANCZOS)
-                    img_transposed.save(thumb_location)
+            if str(db_photo.content_type).startswith('video/'):
+                # ffmpeg?
+                width,height = IMAGESIZES[size]
+                create_video_thumbnail(file_location, thumb_location, width, -1)
+            else:
+                # image
+                basename, ext = os.path.splitext(db_photo.filename)
+                if ext.lower() in MEDIATYPES["image"]:
+                    with Image.open(file_location) as img:
+                        img_transposed = ImageOps.exif_transpose(img)
+                        img_transposed.thumbnail(IMAGESIZES[size], Image.Resampling.LANCZOS)
+                        img_transposed.save(thumb_location)
         return FileResponse(thumb_location)
     if size == "o":
         return FileResponse(file_location)
