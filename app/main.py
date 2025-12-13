@@ -25,4 +25,17 @@ def read_cwd():
     return os.getcwd()
 
 
+#
+
+@app.get("/")
+async def read_index():
+    return FileResponse('static/index.html')
+
+@app.get("/upload")
+async def upload_page():
+    return FileResponse('static/index.html')
+@app.get("/about")
+async def about_page():
+    return FileResponse('static/index.html')
+
 app.mount("/", StaticFiles(directory="/app/static", html=True), name="static")
