@@ -33,6 +33,8 @@ class PhotoSchema(BaseModel):
     date_uploaded: datetime
     date_updated: datetime
     description: Optional[str] = None
+    size: int
+    content_type: Optional[str] = None
     # Nested Pydantic model to list people in the image
     people: List[PersonSchema] = []
 

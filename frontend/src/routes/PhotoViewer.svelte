@@ -12,10 +12,15 @@
 </script>
 
 <div style="width: {width}px;height:{height}px">
-	<img
-		src={photoPath('m', photo)}
-		alt={photo.filename}
-		style="object-fit:
- contain;object-position:center;width:100%;height:100%"
-	/>
+	{#if photo.content_type?.startsWith('video')}
+		<video controls poster={photoPath('m', photo)} width={width}>
+			<source src={photoPath('o', photo)} type={photo.content_type}>
+		</video>
+	{:else}
+		<img
+			src={photoPath('m', photo)}
+			alt={photo.filename}
+			style="object-fit:contain;object-position:center;width:100%;height:100%"
+		/>
+	{/if}
 </div>
