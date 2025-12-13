@@ -5,6 +5,7 @@
 	import Nav from '$lib/components/nav/Nav.svelte';
 	import { session } from '$lib/stores/session-store';
 	import { fetchApi } from '$lib/stores/common-store';
+	import { page } from '$app/state';
 
 	let { children } = $props();
 	const loggedIn = session;
@@ -18,7 +19,7 @@
 <Nav />
 
 <div style="padding:1%">
-	{#if $loggedIn}
+	{#if $loggedIn || page.url.pathname=='/about'}
 		{@render children?.()}
 	{:else if $loggedIn === false}
 		<Login />

@@ -6,16 +6,14 @@
 	import Thumbnail from './Thumbnail.svelte';
 	import PhotoViewer from './PhotoViewer.svelte';
 	import PhotoEditor from './PhotoEditor.svelte';
-	import { tick, type Snippet, type SvelteComponent } from 'svelte';
+	import { tick } from 'svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import type { Person } from '$lib/models/person';
-	import type { PaginatedResults } from '$lib/models/paginated-results';
-	import { fetchApi } from '$lib/stores/common-store';
 	import PersonChooser from '$lib/components/PersonChooser.svelte';
 	import { fly } from 'svelte/transition';
 	import { clickOutside } from '$lib/click-outside';
+	import { get } from 'svelte/store';
 
-	let dialog: HTMLDialogElement;
 	let { currentPage, numPerPage, items, totalItems, criteria } = photopages;
 	let last: number | undefined = $state(undefined);
 	let currentPhotoIndex = $state(-1);
@@ -85,11 +83,15 @@
 	let q = $state($criteria.q);
 	let searchTimerId: any = 0;
 
+	let busy = $state(false);
+	photopages.items.subscribe(()=>busy=false);
+
 	function handleSearchChange(event: Event) {
 		event.preventDefault();
 		if (searchTimerId) {
 			clearTimeout(searchTimerId);
 		}
+		busy=true;
 		searchTimerId = setTimeout(() => {
 			criteria.update((C) => {
 				C.q = q;
@@ -277,15 +279,28 @@
 			{/each}
 		</div>
 	{/if}
-	<div class="col-auto">
-		<input
-			class="form-control"
-			style="width:10rem;"
-			placeholder="search"
-			bind:value={q}
-			onchange={handleSearchChange}
-		/>
-	</div>
+	<!-- Search -->
+	<form class="col-auto" 
+		onsubmit={handleSearchChange}
+		onreset={handleSearchChange}
+	>
+		<div class="input-group">
+			<input
+				class="form-control"
+				style="width:10rem;"
+				placeholder="search descriptions"
+				bind:value={q}
+			/>
+			{#if q}
+			<button class="btn btn-outline-secondary" type="reset">
+				Clear
+			</button>
+			{/if}
+			<button class="btn btn-outline-primary" disabled={busy}>
+				Search
+			</button>
+		</div>
+	</form>
 	<!-- sort -->
 	<div class="col-auto">
 		<div class="input-group">

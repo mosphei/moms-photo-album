@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"prebuild": "dotnet-gitversion /output file /outputfile gitversion.json",
+		"prebuild": "dotnet-gitversion /output file /outputfile src\\routes\\about\\gitversion.json",
 		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
