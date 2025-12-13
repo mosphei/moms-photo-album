@@ -50,7 +50,10 @@ class PhotoModel(Base):
     date_taken: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     date_uploaded: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     date_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # image or video
+    content_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     # hashing for find duplicate photos
+    size: Mapped[int] = mapped_column(Integer)
     hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     md5sum: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     # Establishes the link to the Person model via the association table

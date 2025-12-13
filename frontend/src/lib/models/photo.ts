@@ -6,6 +6,8 @@ export interface Photo {
 	filename: string;
 	description: string;
 	date_taken: Date;
+	size: number;
+	content_type: string;
 	people: Person[];
 }
 
