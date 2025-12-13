@@ -3,107 +3,30 @@ import hashlib
 import json
 import os
 import shutil
+import tempfile
 from typing import List, Literal, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, select
 from PIL import Image, ImageOps
-import imagehash
-import io
-import textwrap
 from rapidfuzz import utils
+
 
 from app.routers.search import fuzz_photos
 
 from ..pagination import PaginatedResults
 
-from .get_date import get_image_date
 from ..settings import IMAGESIZES, MEDIADIR, MEDIATYPES, MIN_RELEVANCE
 from ..security import get_current_user
 from ..schemas import PhotoSchema, PhotoUpdate
 from ..models import PhotoModel, photo_person_association, SearchPhotoModel, User, PersonModel
-from ..database import get_db, update_data_in_db
+from ..database import get_db
 
 router = APIRouter(
     prefix="/api/images",  # Sets the base path for all routes in this file
     tags=["images"],   # Groups these routes in the API docs (Swagger UI)
 )
-
-# Upload image endpoint
-@router.post("/upload/", response_model=PhotoSchema)
-async def upload_image(file: UploadFile = File(...), db: Session = Depends(get_db), current_user:User = Depends(get_current_user)):
-    filename = str(file.filename)
-    base_name, extension = os.path.splitext(filename)
-    # get the image hash
-    try:
-        image_bytes = await file.read()
-        md5sum = hashlib.md5(image_bytes).hexdigest()
-        img = Image.open(io.BytesIO(image_bytes))
-        img_hash = imagehash.average_hash(img)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
-    
-    # try and get exact matches
-    dupe:PhotoModel|None = None
-    dupe = db.query(PhotoModel).filter(and_(
-        PhotoModel.hash == str(img_hash),
-        PhotoModel.md5sum == md5sum
-        )).first()
-    
-    if not dupe is None:
-        #this file has already been uploaded
-        return dupe
-    
-    # date
-    date_taken = get_image_date(img, filename)
-    if date_taken:
-        parent_dirs = os.path.join(f"{date_taken.year:04d}", f"{date_taken.month:02d}")
-    else:
-        " split it on the filename to avoid directories with too many files"
-        left_12 = base_name[:12]
-        chunks_list = textwrap.wrap(left_12, 4)
-        parent_dirs = os.path.join(*chunks_list)
-        # set a date
-        date_taken=datetime(1900, 1, 1, 0, 0, 0)
-
-    upload_dir = os.path.join(MEDIADIR,str(current_user.id),parent_dirs)
-    os.makedirs(upload_dir, exist_ok=True)
-    file_location = os.path.join(upload_dir, filename)
-    # does the file already exist?
-    count = 0
-    while os.path.exists(file_location) and count < 1000:
-        count = count + 1
-        filename = f"{base_name}_{count:03d}{extension}"
-        file_location = os.path.join(upload_dir, filename)
-
-    # save the file
-    try:
-        with open(file_location, "xb") as f:
-            f.write(image_bytes)
-    except FileExistsError:
-        # Catch the specific error raised by the 'xb' mode
-        await file.close()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, # 409
-            detail=f"A file named '{filename}' already exists. Refusing to overwrite."
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error saving image: {str(e)}")
-    
-    # Save image metadata in MySQL database
-    file_path = os.path.join(parent_dirs,filename)
-    db_image = PhotoModel(
-        user_id=current_user.id, 
-        file_path=file_path, 
-        filename=file.filename,
-        date_taken=date_taken, 
-        hash=img_hash,
-        md5sum=md5sum)
-    db.add(db_image)
-    db.commit()
-    db.refresh(db_image)
-    return db_image
 
 # Retrieve image metadata endpoint
 @router.get("/{image_id}", response_model=PhotoSchema)
