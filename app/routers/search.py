@@ -158,9 +158,9 @@ def fuzz_photos(q: str, filter_conditions, db: Session):
         srcresult.q = q
         srcresult.relevance = 0
         if photo.description is not None and len(photo.description) > 0:
-            srcresult.relevance = fuzz.QRatio(q, photo.description, processor=utils.default_process)
+            srcresult.relevance = compare(q, photo.description, processor=utils.default_process)
         else:
-            ratio = fuzz.QRatio(q, photo.filename, processor=utils.default_process)
+            ratio = compare(q, photo.filename, processor=utils.default_process)
             if (ratio > srcresult.relevance):
                 srcresult.relevance = ratio
         db.add(srcresult)

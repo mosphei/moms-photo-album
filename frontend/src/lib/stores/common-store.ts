@@ -24,13 +24,18 @@ export async function fetchApi(url: string, opts = {}) {
 export function createFetcher<T>(
 	url: string,
 	opts: any,
-	callback: (response: string) => T
+	callback: (response: string) => T,
+	reject: ((err: any) => void)|undefined = undefined,
 ): () => Promise<T | undefined> {
 	return async () => {
-		const txt = await fetchApi(url, opts);
-		if (txt) {
-			const x = callback(txt);
-			return x;
+		try {
+			const txt = await fetchApi(url, opts);
+			if (txt) {
+				const x = callback(txt);
+				return x;
+			}
+		} catch (error) {
+			reject?.(error);
 		}
 	};
 }
@@ -38,7 +43,8 @@ export function createFetcher<T>(
 export function createStore<T>(
 	intitalValue: T,
 	localStorageKey: string,
-	fetcher: () => Promise<T | undefined>
+	fetcher: () => Promise<T | undefined>,
+	//error: (()=>void)|undefined
 ): Readable<T> & { refresh: () => Promise<boolean> } {
 	const { subscribe, update } = writable<T>(intitalValue);
 	let fetchDebounceId: any = 0;
