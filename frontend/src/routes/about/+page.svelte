@@ -2,8 +2,7 @@
 	import { version } from '$app/environment';
 	import { errorAlert, progressAlert } from '$lib/alerts';
 	import DebugPanel from '$lib/components/DebugPanel.svelte';
-	import gitversion from './gitversion.json' with {type:'json'};
-
+	import gitversion from './gitversion.json' with { type: 'json' };
 
 	const sleep = (t = Math.random() * 1000) => new Promise((resolve) => setTimeout(resolve, t));
 	async function throwError() {
@@ -40,9 +39,7 @@
 </script>
 
 <h2>About</h2>
-<p>
-	Moms Photo Album
-</p>
+<p>Moms Photo Album</p>
 <p>
 	build: {version}
 </p>

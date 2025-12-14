@@ -13,8 +13,8 @@
 
 <div style="width: {width}px;height:{height}px">
 	{#if photo.content_type?.startsWith('video')}
-		<video controls poster={photoPath('m', photo)} width={width}>
-			<source src={photoPath('o', photo)} type={photo.content_type}>
+		<video controls poster={photoPath('m', photo)} {width}>
+			<source src={photoPath('o', photo)} type={photo.content_type} />
 		</video>
 	{:else}
 		<img

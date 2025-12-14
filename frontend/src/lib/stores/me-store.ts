@@ -4,8 +4,8 @@ import { session } from './session-store';
 import { get } from 'svelte/store';
 
 const meFetcher = createFetcher<User | undefined>(
-	'/api/users/me', 
-	undefined, 
+	'/api/users/me',
+	undefined,
 	(response) => {
 		const user = JSON.parse(response);
 		if (user && get(session) !== true) {
@@ -13,7 +13,7 @@ const meFetcher = createFetcher<User | undefined>(
 		}
 		return user;
 	},
-	err => {
+	(err) => {
 		session.set(false);
 		console.log(err);
 	}
