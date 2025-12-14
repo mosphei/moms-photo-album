@@ -49,7 +49,7 @@ def login_for_access_token(response: Response, username=Form(...), password = Fo
         key="session_id",           # The name of the cookie
         value=session_id,           # The generated value
         httponly=True,              # Prevents JavaScript access (SECURITY BEST PRACTICE)
-        secure=True,                # Ensures cookie is sent over HTTPS only (SECURITY BEST PRACTICE)
+        # secure=True,                # Ensures cookie is sent over HTTPS only (SECURITY BEST PRACTICE)
         samesite="lax",             # Mitigates CSRF attacks
         max_age=max_age_seconds,            # Optional: Cookie expiration time in seconds (e.g., 2 weeks)
         expires=max_age_seconds,            # Optional: Same as max_age, useful for older browsers
