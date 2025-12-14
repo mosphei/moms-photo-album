@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, HttpUrl
 
+
 # Schema for a single person (used for reading data)
 class PersonSchema(BaseModel):
     id: int
@@ -13,18 +14,22 @@ class PersonSchema(BaseModel):
         # Allows Pydantic to read ORM objects directly
         from_attributes = True
 
+
 # Schema for creating a new person (no ID needed yet)
 class PersonCreate(BaseModel):
     name: str
     past_names: Optional[str] = None
 
+
 class PersonUpdate(BaseModel):
     name: Optional[str] = None
     past_names: Optional[str] = None
 
+
 class PersonSearchResult(PersonSchema):
     relevance: float = 0
-    
+
+
 # Schema for a single image (used for reading data)
 class PhotoSchema(BaseModel):
     id: int
@@ -41,6 +46,7 @@ class PhotoSchema(BaseModel):
     class Config:
         from_attributes = True
 
+
 # Schema for creating a new image (ID handled by DB, provide file path and optional people IDs)
 class PhotoCreate(BaseModel):
     user_id: int
@@ -49,6 +55,7 @@ class PhotoCreate(BaseModel):
     date_taken: datetime | None = None
     hash: str
     md5sum: str
+
 
 # Schema for partial updates
 class PhotoUpdate(BaseModel):
@@ -64,24 +71,29 @@ class PhotoUpdate(BaseModel):
         # Allows Pydantic to read ORM objects directly
         from_attributes = True
 
+
 class UserCreate(BaseModel):
     username: str
     password: str
     person: PersonSchema
+
 
 class UserAuthenticate(BaseModel):
     username: str
     password: str
     hashed_password: str
 
+
 class UserSchema(BaseModel):
-    id: int 
+    id: int
     username: str
     person: PersonSchema | None = None
+
 
 class Token(BaseModel):
     access_token: str
     token_type: str
+
 
 class TokenData(BaseModel):
     username: str | None = None

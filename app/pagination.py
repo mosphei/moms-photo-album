@@ -3,7 +3,8 @@ from pydantic import BaseModel
 from pydantic.generics import GenericModel
 
 # Define a Type Variable (T is a common convention)
-T = TypeVar('T')
+T = TypeVar("T")
+
 
 # Define the generic class, inheriting from GenericModel and Generic[T]
 class PaginatedResults(GenericModel, Generic[T]):
@@ -11,4 +12,3 @@ class PaginatedResults(GenericModel, Generic[T]):
     offset: int
     limit: int
     items: List[T]
-    

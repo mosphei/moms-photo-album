@@ -20,6 +20,7 @@ app.include_router(upload.router)
 app.include_router(users.router)
 app.include_router(tests.router)
 
+
 @app.get("/api/cwd")
 def read_cwd():
     "get cuurent dir"
@@ -28,15 +29,20 @@ def read_cwd():
 
 #
 
+
 @app.get("/")
 async def read_index():
-    return FileResponse('static/index.html')
+    return FileResponse("static/index.html")
+
 
 @app.get("/upload")
 async def upload_page():
-    return FileResponse('static/index.html')
+    return FileResponse("static/index.html")
+
+
 @app.get("/about")
 async def about_page():
-    return FileResponse('static/index.html')
+    return FileResponse("static/index.html")
+
 
 app.mount("/", StaticFiles(directory="/app/static", html=True), name="static")

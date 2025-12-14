@@ -15,7 +15,7 @@ const meFetcher = createFetcher<User | undefined>(
 	},
 	err => {
 		session.set(false);
-		alert(err);
+		console.log(err);
 	}
 );
 
