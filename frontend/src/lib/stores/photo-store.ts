@@ -53,7 +53,7 @@ export async function getPhotos(
 		headers: { accept: 'application/json' }
 	});
 	const result: PaginatedResults<Photo> = await JSON.parse(response || '[]', dateTimeReviver);
-	console.log(`getPhotos`, result);
+	// console.log(`getPhotos`, result);
 	return result;
 }
 

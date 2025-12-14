@@ -84,14 +84,14 @@
 	let searchTimerId: any = 0;
 
 	let busy = $state(false);
-	photopages.items.subscribe(()=>busy=false);
+	photopages.items.subscribe(() => (busy = false));
 
 	function handleSearchChange(event: Event) {
 		event.preventDefault();
 		if (searchTimerId) {
 			clearTimeout(searchTimerId);
 		}
-		busy=true;
+		busy = true;
 		searchTimerId = setTimeout(() => {
 			criteria.update((C) => {
 				C.q = q;
@@ -280,10 +280,7 @@
 		</div>
 	{/if}
 	<!-- Search -->
-	<form class="col-auto" 
-		onsubmit={handleSearchChange}
-		onreset={handleSearchChange}
-	>
+	<form class="col-auto" onsubmit={handleSearchChange} onreset={handleSearchChange}>
 		<div class="input-group">
 			<input
 				class="form-control"
@@ -292,13 +289,9 @@
 				bind:value={q}
 			/>
 			{#if q}
-			<button class="btn btn-outline-secondary" type="reset">
-				Clear
-			</button>
+				<button class="btn btn-outline-secondary" type="reset"> Clear </button>
 			{/if}
-			<button class="btn btn-outline-primary" disabled={busy}>
-				Search
-			</button>
+			<button class="btn btn-outline-primary" disabled={busy}> Search </button>
 		</div>
 	</form>
 	<!-- sort -->

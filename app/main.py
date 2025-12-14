@@ -7,12 +7,13 @@ from sqlalchemy.orm import Session
 from .database import create_all_tables, get_db
 from models import Base, PhotoModel
 from schemas import PhotoCreate, PhotoSchema
-from .routers import images, people, search, upload, users, tests
+from .routers import admin, images, people, search, upload, users, tests
 
 create_all_tables()
 
 # Create FastAPI instance
 app = FastAPI()
+app.include_router(admin.router)
 app.include_router(images.router)
 app.include_router(people.router)
 app.include_router(search.router)

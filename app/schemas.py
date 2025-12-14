@@ -66,6 +66,8 @@ class PhotoUpdate(BaseModel):
     # Nested Pydantic model to list people in the image
     people: Optional[List[PersonSchema]] = None
     rotation: Optional[int] = None
+    size: int
+    content_type: Optional[str] = None
 
     class Config:
         # Allows Pydantic to read ORM objects directly
@@ -88,6 +90,7 @@ class UserSchema(BaseModel):
     id: int
     username: str
     person: PersonSchema | None = None
+    admin: bool = False
 
 
 class Token(BaseModel):

@@ -19,7 +19,7 @@
 <Nav />
 
 <div style="padding:1%">
-	{#if $loggedIn || page.url.pathname=='/about'}
+	{#if $loggedIn || page.url.pathname == '/about'}
 		{@render children?.()}
 	{:else if $loggedIn === false}
 		<Login />

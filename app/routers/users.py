@@ -90,10 +90,7 @@ def log_user_out(
 
 
 # Protected Endpoint Example
-@router.get("/me")
+@router.get("/me", response_model=UserSchema)
 def read_users_me(current_user: User = Depends(get_current_user)):
     # The current_user object is now a SQLAlchemy model instance
-    return {
-        "username": current_user.username,
-        "message": "You have access to protected data",
-    }
+    return current_user

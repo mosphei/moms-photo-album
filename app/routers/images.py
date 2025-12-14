@@ -28,8 +28,8 @@ from ..models import (
 from ..database import get_db
 
 router = APIRouter(
-    prefix="/api/images",  # Sets the base path for all routes in this file
-    tags=["images"],  # Groups these routes in the API docs (Swagger UI)
+    prefix="/api/images",
+    tags=["images"],
 )
 
 

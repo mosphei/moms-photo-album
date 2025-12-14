@@ -1,10 +1,6 @@
 <script lang="ts">
 	import { derived, get, writable, type Readable, type Writable } from 'svelte/store';
-	import {
-		fakeUploadFileWithProgress,
-		uploadFileWithProgress,
-		type IUpload
-	} from './upload-file';
+	import { fakeUploadFileWithProgress, uploadFileWithProgress, type IUpload } from './upload-file';
 	import UploadCard, { type IFileInfo } from './UploadCard.svelte';
 	import { photopages } from '$lib/stores/photo-store';
 
