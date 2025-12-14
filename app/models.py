@@ -45,6 +45,14 @@ class PersonModel(Base):
         "PhotoModel", secondary="photo_person_association", viewonly=True
     )
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "past_names": self.past_names,
+            "date_updated": self.date_updated,
+        }
+
 
 class PersonCountModel(Base):
     """
@@ -87,13 +95,43 @@ class PhotoModel(Base):
         "PersonModel", secondary="photo_person_association"
     )
 
+    def to_dict(self, include_people=False):
+        data = {
+            "id": self.id,
+            "user_id": self.user_id,
+            "file_path": self.file_path,
+            "filename": self.filename,
+            "description": self.description,
+            "date_taken": self.date_taken.isoformat() if self.date_taken else None,
+            "date_uploaded": self.date_uploaded.isoformat(),
+            "date_updated": self.date_updated.isoformat(),
+            "content_type": self.content_type,
+            "size": self.size,
+            "hash": self.hash,
+            "md5sum": self.md5sum,
+        }
+
+        # Optionally include the 'people' relationship data if requested
+        if include_people and self.people:
+            # Recursively calls the to_dict method on related PersonModel instances
+            data["people"] = [person.to_dict() for person in self.people]
+
+        return data
+
+
+class MissingPhotoModel(Base):
+    __tablename__ = "missing_photos"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    photo: Mapped[str] = mapped_column(LONGTEXT)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
 
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     username = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    admin = Column(Boolean, default=False)
+    admin = mapped_column(Boolean, default=False)
     Column("person_id", Integer, ForeignKey("people.id"), primary_key=True)
 
 
