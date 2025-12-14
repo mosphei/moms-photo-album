@@ -2,18 +2,40 @@
 	import PageTitle from '$lib/components/PageTitle.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import type { PaginatedResults } from '$lib/models/paginated-results';
+	import { PaginatedStore } from '$lib/models/paginated-store';
 	import type { Photo } from '$lib/models/photo';
 	import { fetchApi } from '$lib/stores/common-store';
 	import { dateTimeReviver } from '$lib/utils';
 	import { onMount, tick } from 'svelte';
-	import { writable } from 'svelte/store';
+	import { get, writable } from 'svelte/store';
 
+	const missingStore = new PaginatedStore<Photo>(async (page: number, numPerPage: number) => {
+		const offset = (page - 1) * numPerPage;
+		const urlParams = new URLSearchParams({
+			offset: `${offset}`,
+			limit: `${numPerPage}`
+		});
+		const url = '/api/admin/missing?' + urlParams.toString();
+		const response = await fetchApi(url, {
+			headers: { accept: 'application/json' }
+		});
+		console.log(url, response);
+		const result: PaginatedResults<Photo> = JSON.parse(response || '[]', dateTimeReviver);
+		return result;
+	});
+	const { currentPage, numPerPage, totalCount, currentItems, lastPage } = missingStore;
+	let page = $state($currentPage);
+	$effect(() => {
+		console.log('new page', page);
+		missingStore.setCurrentPage(page);
+	});
+	let busy = $state(false);
+	/*
 	const items = writable([] as Photo[]);
 	const currentPage = writable(1);
 	const numPerPage = writable(20);
 	let total_count = $state(0);
 	let last: number | undefined = $state();
-	let busy = $state(false);
 	let searchTimerId: any = 0;
 	function getMissingItems(page: number, pageSize: number) {
 		if (searchTimerId) {
@@ -51,8 +73,9 @@
 		items.set([]);
 		currentPage.set(newPage);
 	});
+    */
 	onMount(() => {
-		getMissingItems($currentPage, $numPerPage);
+		missingStore.refresh();
 	});
 </script>
 
@@ -61,7 +84,7 @@
 <div>
 	{($currentPage - 1) * $numPerPage + 1}
 	to {($currentPage - 1) * $numPerPage + $numPerPage}
-	of {total_count}
+	of {$totalCount}
 </div>
 {#if busy}
 	<div class="alert alert-info">
@@ -77,7 +100,7 @@
 		</div>
 	</div>
 {/if}
-{#each $items as item}
+{#each $currentItems as item}
 	<div class="card mb-2">
 		<div class="card-body">
 			<h5 class="card-title">
@@ -95,5 +118,5 @@
 {/each}
 <div style="height:2.5rem">&nbsp;</div>
 <div style="position:fixed;bottom:0">
-	<Pagination page={$currentPage} width={7} {last} />
+	<Pagination bind:page width={7} last={$lastPage} />
 </div>
