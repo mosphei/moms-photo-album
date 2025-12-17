@@ -12,6 +12,8 @@ import imagehash
 import textwrap
 import ffmpeg
 
+from app.media_utils import extract_creation_time, get_date_from_filename, get_image_date, get_metadata_ffmpeg_python
+
 from ..settings import MEDIADIR
 from ..security import get_current_user
 from ..schemas import PhotoSchema
@@ -23,98 +25,6 @@ router = APIRouter(
     prefix="/api/upload",  # Sets the base path for all routes in this file
     tags=["upload"],  # Groups these routes in the API docs (Swagger UI)
 )
-
-FILENAME_PATTERN = re.compile(r"(\d{8})_(\d{6})")
-
-
-def get_date_from_filename(filename: str) -> datetime | None:
-    """
-    Attempts to extract a datetime object from a filename following the
-    'yyyymmdd_hhmmss' convention.
-    """
-    match = FILENAME_PATTERN.search(filename)
-    if match:
-        date_str = match.group(1)  # e.g., "20240115"
-        time_str = match.group(2)  # e.g., "103000"
-        full_datetime_str = date_str + time_str
-
-        try:
-            # Parse the combined string: YYYYMMDDHHMMSS
-            return datetime.strptime(full_datetime_str, "%Y%m%d%H%M%S")
-        except ValueError:
-            # In case the matched digits are not a valid date (e.g., 99999999)
-            print(
-                f"Matched pattern but failed to parse valid date/time: {full_datetime_str}"
-            )
-            return None
-    else:
-        print(f"Filename '{filename}' does not follow the yyyymmdd_hhmmss convention.")
-        return None
-
-
-def get_image_date(img: ImageFile.ImageFile, filename: str) -> datetime | None:
-    """
-    Attempts to get the date from EXIF data first.
-    If not found, falls back to parsing the filename.
-    """
-    # 1. Try EXIF data
-    try:
-        exif_data = img.getexif()
-        date_str = exif_data.get(36867) or exif_data.get(
-            306
-        )  # DateTimeOriginal or DateTime
-        if date_str:
-            print(f"Date found in EXIF data: {date_str}")
-            return datetime.strptime(date_str, "%Y:%m:%d %H:%M:%S")
-    except (IOError, OSError, AttributeError, ValueError):
-        # Catches file errors, no exif data errors, or bad EXIF string format errors
-        print("EXIF data extraction failed or not present.")
-
-    # 2. Fallback to Filename parsing if EXIF fails
-    print("Falling back to filename parsing...")
-    return get_date_from_filename(filename)
-
-
-def get_metadata_ffmpeg_python(video_path):
-    """
-    Retrieves video metadata using the ffmpeg-python probe function.
-    """
-    try:
-        probe = ffmpeg.probe(video_path)
-        return probe
-    except ffmpeg.Error as e:
-        print(f"FFmpeg Error: {e.stderr.decode()}")
-        return None
-
-
-def extract_creation_time(metadata) -> datetime | None:
-    """
-    Attempts to find the creation time within the metadata dictionary.
-    """
-    if not metadata:
-        return None
-
-    creation_time_str: str | None = None
-
-    # 1. Check in the global format tags first (most common location)
-    format_tags = metadata.get("format", {}).get("tags", {})
-    creation_time_str = format_tags.get("creation_time")
-
-    if creation_time_str:
-        return datetime.fromisoformat(creation_time_str)
-
-    # 2. If not found globally, check specific stream tags (e.g., the video stream)
-    streams = metadata.get("streams", [])
-    for stream in streams:
-        if stream.get("codec_type") == "video":
-            stream_tags = stream.get("tags", {})
-            creation_time_str = stream_tags.get("creation_time")
-            if creation_time_str:
-                return datetime.fromisoformat(creation_time_str)
-            break  # Found the video stream, no need to check others
-
-    return None
-
 
 # Upload image endpoint
 @router.post("/", response_model=PhotoSchema)
@@ -182,7 +92,7 @@ async def upload_image(
     img_hash = None
     date_taken = None
     try:
-        if content_type == "image":
+        if content_type.startswith("image/"):
             with Image.open(temp_file_path) as img:
                 img_hash = imagehash.average_hash(img)
                 date_taken = get_image_date(img, filename)

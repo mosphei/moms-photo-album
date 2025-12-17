@@ -128,12 +128,12 @@ class MissingPhotoModel(Base):
 
 class User(Base):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    username = Column(String(255), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
+    id = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    username = mapped_column(String(255), unique=True, index=True, nullable=False)
+    hashed_password = mapped_column(String(255), nullable=False)
     admin = mapped_column(Boolean, default=False)
-    Column("person_id", Integer, ForeignKey("people.id"), primary_key=True)
-
+    person_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("people.id"))
+    #person: Optional[Mapped["PersonModel"]] = relationship(back_populates="users")
 
 class UserSession(Base):
     __tablename__ = "sessions"

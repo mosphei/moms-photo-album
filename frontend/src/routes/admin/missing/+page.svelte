@@ -30,50 +30,7 @@
 		missingStore.setCurrentPage(page);
 	});
 	let busy = $state(false);
-	/*
-	const items = writable([] as Photo[]);
-	const currentPage = writable(1);
-	const numPerPage = writable(20);
-	let total_count = $state(0);
-	let last: number | undefined = $state();
-	let searchTimerId: any = 0;
-	function getMissingItems(page: number, pageSize: number) {
-		if (searchTimerId) {
-			clearTimeout(searchTimerId);
-		}
-		searchTimerId = setTimeout(async () => {
-			busy = true;
-			const offset = (page - 1) * pageSize;
-			const urlParams = new URLSearchParams({
-				offset: `${offset}`,
-				limit: `${pageSize}`
-			});
-			const url = '/api/admin/missing?' + urlParams.toString();
-			const response = await fetchApi(url, {
-				headers: { accept: 'application/json' }
-			});
-			console.log(url, response);
-			const result: PaginatedResults<Photo> = JSON.parse(response || '[]', dateTimeReviver);
-			items.set(result.items);
-			if (result.total_count) {
-				total_count = result.total_count;
-				last = Math.ceil(total_count / pageSize);
-			}
-			busy = false;
-		}, 300);
-	}
-	currentPage.subscribe((pp) => {
-		items.set([]);
-		tick().then(() => getMissingItems(pp, $numPerPage));
-	});
-	numPerPage.subscribe((PS) => {
-		// calculate new current page
-		const currentFirstItem = ($currentPage - 1) * $numPerPage + 1;
-		const newPage = Math.floor(currentFirstItem / $numPerPage) + 1;
-		items.set([]);
-		currentPage.set(newPage);
-	});
-    */
+
 	onMount(() => {
 		missingStore.refresh();
 	});

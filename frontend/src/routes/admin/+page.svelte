@@ -11,6 +11,11 @@
 			title: 'Scan for new photos',
 			href: resolve('/admin/scan/'),
 			blurb: 'Find files on disk not in database'
+		},
+		{
+			title: 'Users',
+			href: resolve('/admin/users/'),
+			blurb: 'Add users, set passwords, etc.'
 		}
 	];
 </script>
