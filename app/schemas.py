@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, ConfigDict, HttpUrl
 
 
 # Schema for a single person (used for reading data)
@@ -77,7 +77,6 @@ class PhotoUpdate(BaseModel):
 class UserCreate(BaseModel):
     username: str
     password: str
-    person: PersonSchema
 
 
 class UserAuthenticate(BaseModel):
@@ -91,6 +90,14 @@ class UserSchema(BaseModel):
     username: str
     person: PersonSchema | None = None
     admin: bool = False
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserUpdateSchema(BaseModel):
+    id: int
+    password: str | None = None
+    password2: str | None = None
+    admin: bool | None = None
 
 
 class Token(BaseModel):

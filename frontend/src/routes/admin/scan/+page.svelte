@@ -6,57 +6,36 @@
 	import type { Photo } from '$lib/models/photo';
 	import { fetchApi } from '$lib/stores/common-store';
 	import { dateTimeReviver } from '$lib/utils';
-	import { onMount, tick } from 'svelte';
-	import { get, writable } from 'svelte/store';
-
-	const missingStore = new PaginatedStore<Photo>(async (page: number, numPerPage: number) => {
+	async function fetcher(page: number, numPerPage: number) {
 		const offset = (page - 1) * numPerPage;
 		const urlParams = new URLSearchParams({
 			offset: `${offset}`,
 			limit: `${numPerPage}`
 		});
-		const url = '/api/admin/missing?' + urlParams.toString();
+		const url = '/api/admin/scan?' + urlParams.toString();
 		const response = await fetchApi(url, {
 			headers: { accept: 'application/json' }
 		});
-		console.log(url, response);
 		const result: PaginatedResults<Photo> = JSON.parse(response || '[]', dateTimeReviver);
+		console.log(url, result);
 		return result;
-	});
-	const { currentPage, numPerPage, totalCount, currentItems, lastPage } = missingStore;
+	}
+	const scanStore = new PaginatedStore<Photo>(fetcher);
+	const { currentPage, numPerPage, totalCount, currentItems, lastPage } = scanStore;
 	let page = $state($currentPage);
 	$effect(() => {
 		console.log('new page', page);
-		missingStore.setCurrentPage(page);
-	});
-	let busy = $state(false);
-
-	onMount(() => {
-		missingStore.refresh();
+		scanStore.setCurrentPage(page);
 	});
 </script>
 
-<PageTitle title="Admin - Missing Photos">Missing Photos</PageTitle>
+<PageTitle title="Admin - Scan For New">Scan for New Photos</PageTitle>
 
 <div>
 	{($currentPage - 1) * $numPerPage + 1}
 	to {($currentPage - 1) * $numPerPage + $numPerPage}
 	of {$totalCount}
 </div>
-{#if busy}
-	<div class="alert alert-info">
-		<div
-			class="progress"
-			role="progressbar"
-			aria-label="Default striped example"
-			aria-valuenow="10"
-			aria-valuemin="0"
-			aria-valuemax="100"
-		>
-			<div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 75%"></div>
-		</div>
-	</div>
-{/if}
 {#each $currentItems as item}
 	<div class="card mb-2">
 		<div class="card-body">

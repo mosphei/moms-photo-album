@@ -6,6 +6,7 @@
 	import { session } from '$lib/stores/session-store';
 	import { fetchApi } from '$lib/stores/common-store';
 	import { page } from '$app/state';
+	import { SvelteToast } from '@zerodevx/svelte-toast';
 
 	let { children } = $props();
 	const loggedIn = session;
@@ -32,3 +33,4 @@
 	<button class="btn btn-light" onclick={handleTest}>Test Auth</button>
 </DebugPanel>
 -->
+<SvelteToast />

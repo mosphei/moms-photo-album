@@ -1,11 +1,21 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 
-	const sections = [
+	const sections: { href: string; title: string; blurb: string }[] = [
 		{
 			href: resolve('/admin/missing/'),
 			title: 'Missing Photos',
 			blurb: 'Remove photos that are in the database but not on the disk'
+		},
+		{
+			title: 'Scan for new photos',
+			href: resolve('/admin/scan/'),
+			blurb: 'Find files on disk not in database'
+		},
+		{
+			title: 'Users',
+			href: resolve('/admin/users/'),
+			blurb: 'Add users, set passwords, etc.'
 		}
 	];
 </script>
