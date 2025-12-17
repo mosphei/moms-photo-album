@@ -133,7 +133,8 @@ class User(Base):
     hashed_password = mapped_column(String(255), nullable=False)
     admin = mapped_column(Boolean, default=False)
     person_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("people.id"))
-    #person: Optional[Mapped["PersonModel"]] = relationship(back_populates="users")
+    # person: Optional[Mapped["PersonModel"]] = relationship(back_populates="users")
+
 
 class UserSession(Base):
     __tablename__ = "sessions"

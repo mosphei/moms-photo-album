@@ -13,6 +13,7 @@ from app.settings import MEDIADIR
 
 FILENAME_PATTERN = re.compile(r"(\d{8})_(\d{6})")
 
+
 def get_date_from_filename(filename: str) -> datetime | None:
     """
     Attempts to extract a datetime object from a filename following the
@@ -127,26 +128,28 @@ def create_video_thumbnail(
     except ffmpeg.Error as e:
         print(f"FFmpeg Error: {e.stderr.decode()}")
 
+
 def get_content_type_by_extension(filepath):
     """
     Determines content type based on the file extension.
     """
     # guess_type returns a tuple: (type, encoding)
     content_type, encoding = mimetypes.guess_type(filepath)
-    
+
     if content_type:
         return content_type
     else:
-        return "application/octet-stream" # Default fallback for unknown types
+        return "application/octet-stream"  # Default fallback for unknown types
+
 
 def make_photo_from_file(user_id: int, relative_path: str) -> PhotoModel:
     md5_hash = hashlib.md5()
     filename = os.path.basename(relative_path)
-    file_path = os.path.join(MEDIADIR,str(user_id),relative_path)
+    file_path = os.path.join(MEDIADIR, str(user_id), relative_path)
     size = os.path.getsize(file_path)
     content_type = get_content_type_by_extension(file_path)
     md5sum = None
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         # Read the file in chunks (e.g., 8192 bytes)
         for chunk in iter(lambda: f.read(8192), b""):
             md5_hash.update(chunk)
@@ -177,7 +180,7 @@ def make_photo_from_file(user_id: int, relative_path: str) -> PhotoModel:
             )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
-            
+
     photo = PhotoModel(
         user_id=user_id,
         file_path=relative_path,

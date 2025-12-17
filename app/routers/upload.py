@@ -12,7 +12,12 @@ import imagehash
 import textwrap
 import ffmpeg
 
-from app.media_utils import extract_creation_time, get_date_from_filename, get_image_date, get_metadata_ffmpeg_python
+from app.media_utils import (
+    extract_creation_time,
+    get_date_from_filename,
+    get_image_date,
+    get_metadata_ffmpeg_python,
+)
 
 from ..settings import MEDIADIR
 from ..security import get_current_user
@@ -25,6 +30,7 @@ router = APIRouter(
     prefix="/api/upload",  # Sets the base path for all routes in this file
     tags=["upload"],  # Groups these routes in the API docs (Swagger UI)
 )
+
 
 # Upload image endpoint
 @router.post("/", response_model=PhotoSchema)

@@ -92,6 +92,14 @@ class UserSchema(BaseModel):
     admin: bool = False
     model_config = ConfigDict(from_attributes=True)
 
+
+class UserUpdateSchema(BaseModel):
+    id: int
+    password: str | None = None
+    password2: str | None = None
+    admin: bool | None = None
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str

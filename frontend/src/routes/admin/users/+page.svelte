@@ -8,6 +8,7 @@
 	import { dateTimeReviver } from '$lib/utils';
 	import { onMount } from 'svelte';
 	import NewUserForm from './NewUserForm.svelte';
+	import EditUserForm from './EditUserForm.svelte';
 	const userstore = new PaginatedStore<User>(async (page: number, numPerPage: number) => {
 		const offset = (page - 1) * numPerPage;
 		const urlParams = new URLSearchParams({
@@ -32,12 +33,6 @@
 	let { currentItems, currentPage, numPerPage, totalCount, lastPage } = userstore;
 	let page = $state($currentPage);
 	let selectedUserId: number | undefined = $state();
-
-	function handleSaveButton(
-		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
-	) {
-		throw new Error('Function not implemented.');
-	}
 
 	function handleAddClose(): void {
 		// we should really return a user id and highlight the new user
@@ -90,14 +85,7 @@
 				{/if}
 			</div>
 			{#if editing}
-				<div class="mb-2 form-check">
-					<input type="checkbox" class="form-check-input" id="admin" />
-					<label class="form-check-label" for="admin">Admin</label>
-				</div>
-				<button class="btn btn-primary" onclick={handleSaveButton}> Save </button>
-				<button class="btn btn-secondary" onclick={() => (selectedUserId = undefined)}>
-					Cancel
-				</button>
+				<EditUserForm {user} onclose={handleAddClose} />
 			{:else}
 				<p class="mb-1">Some placeholder content in a paragraph.</p>
 			{/if}
