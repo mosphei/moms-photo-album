@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { afterNavigate } from '$app/navigation';
 	import { clickOutside } from '$lib/click-outside';
 	import type { Snippet } from 'svelte';
 
@@ -12,6 +13,7 @@
 	function toggleShow() {
 		show = !show;
 	}
+	afterNavigate(() => (show = false));
 </script>
 
 <li class="nav-item dropdown" use:clickOutside={() => (show = false)}>

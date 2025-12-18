@@ -137,8 +137,8 @@ def get_content_type_by_extension(filepath):
     content_type, encoding = mimetypes.guess_type(filepath)
 
     if content_type:
-        if content_type == 'model/vnd.mts':
-            return 'video/MP2T'
+        if content_type == "model/vnd.mts":
+            return "video/MP2T"
         return content_type
     else:
         return "application/octet-stream"  # Default fallback for unknown types

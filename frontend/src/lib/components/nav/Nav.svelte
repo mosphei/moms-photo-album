@@ -52,33 +52,20 @@
 					<a href={resolve('/people')} class="nav-link">People</a>
 				</li>
 				{#if $me?.admin}
-					<li class="nav-item">
-						<a href={resolve('/admin')} class="nav-link">Admin</a>
-					</li>
+					<NavDropdown text="Admin">
+						<a class="dropdown-item" href={resolve('/admin/missing/')}>Scan Missing</a>
+						<a class="dropdown-item" href={resolve('/admin/scan/')}>Scan New</a>
+						<hr class="dropdown-divider" />
+						<a class="dropdown-item" href={resolve('/admin/users')}>Users</a>
+					</NavDropdown>
 				{/if}
 				<!--
-				<NavDropdown text="Dropdown">
-					<a class="dropdown-item" href="/xxx">X</a>
-					<a class="dropdown-item" href="/xxx">X</a>
-					<a class="dropdown-item" href="/xxx">X</a>
-					<hr class="dropdown-divider" />
-					<a class="dropdown-item" href="/xxx">X</a>
-				</NavDropdown>
+				
 				<li class="nav-item">
 					<a class="nav-link disabled" aria-disabled="true">Disabled</a>
 				</li> 
 				-->
 			</ul>
-			<form class="d-flex me-2" role="search" action="/search">
-				<input
-					class="form-control me-2"
-					type="search"
-					placeholder="Search"
-					aria-label="Search"
-					name="q"
-				/>
-				<button class="btn btn-outline-success" type="submit">Search</button>
-			</form>
 			{#if $me && $session}
 				<ul class="navbar-nav mb-2 mb-lg-0">
 					<NavDropdown text={$me.username}>
