@@ -15,6 +15,7 @@ services:
       DB_NAME: ${DB_NAME:-photo_db}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
+      APP_ENV: ${APP_ENV:-production}
 
   db:
     image: mysql:8.0

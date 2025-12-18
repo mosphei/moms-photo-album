@@ -19,6 +19,7 @@ DATABASE_URL = (
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,  # Optional, helps manage connections
+    pool_size=20,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

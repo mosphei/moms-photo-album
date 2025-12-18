@@ -73,7 +73,7 @@ class PersonCountModel(Base):
 class PhotoModel(Base):
     __tablename__ = "photos"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = mapped_column(Integer, ForeignKey("users.id"))
     # We typically store the photo file path/URL, not the photo data itself, in the DB
     file_path: Mapped[str] = mapped_column(String(255), nullable=False)
     # original filename

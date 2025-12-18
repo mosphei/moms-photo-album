@@ -126,7 +126,9 @@ def create_video_thumbnail(
         )
         print(f"Meaningful thumbnail created at {output_path}")
     except ffmpeg.Error as e:
-        print(f"FFmpeg Error: {e.stderr.decode()}")
+        raise HTTPException(
+            status_code=500, detail=f"FFmpeg Error: {e.stderr.decode()}"
+        )
 
 
 def get_content_type_by_extension(filepath):

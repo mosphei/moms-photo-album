@@ -10,7 +10,11 @@ from PIL import Image, ImageOps
 from rapidfuzz import utils
 
 
-from app.media_utils import create_video_thumbnail
+from app.media_utils import (
+    create_video_thumbnail,
+    get_content_type_by_extension,
+    make_photo_from_file,
+)
 from app.routers.search import fuzz_photos
 
 from ..pagination import PaginatedResults
@@ -157,6 +161,9 @@ async def get_image_file(
     # construct the location
     userdir = os.path.join(MEDIADIR, str(current_user.id))
     file_location = os.path.join(userdir, db_photo.file_path)
+    if db_photo.content_type is None:
+        db_photo.content_type = get_content_type_by_extension(db_photo.file_path)
+        db.commit()
 
     if size in IMAGESIZES:
         filename = f"{db_photo.id}_{size}.jpg"
@@ -170,6 +177,15 @@ async def get_image_file(
                 create_video_thumbnail(file_location, thumb_location, width, -1)
             else:
                 # image
+                if not os.path.exists(file_location):
+                    APP_ENV = os.getenv("APP_ENV", "production")
+                    if APP_ENV == "development":
+                        file_location = "test.png"
+                    else:
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"missing image file'{db_photo.file_path}'!",
+                        )
                 basename, ext = os.path.splitext(db_photo.filename)
                 if ext.lower() in MEDIATYPES["image"]:
                     with Image.open(file_location) as img:
