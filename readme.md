@@ -9,7 +9,9 @@ as well as keywords.
 - thumbnails for upload
 - face recognition
 
-don't forget to start docker desktop and make sure engine is running
+## Development
+- windows? don't forget to start docker desktop and make sure engine is running
+- ruff format and npm run format before commits
 
 
 notes:

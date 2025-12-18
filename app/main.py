@@ -1,12 +1,9 @@
 import os
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy.orm import Session
 
-from .database import create_all_tables, get_db
-from models import Base, PhotoModel
-from schemas import PhotoCreate, PhotoSchema
+from .database import create_all_tables
 from .routers import admin, images, people, search, upload, users, tests
 
 create_all_tables()
@@ -28,22 +25,15 @@ def read_cwd():
     return os.getcwd()
 
 
-#
-
-
-@app.get("/")
-async def read_index():
-    return FileResponse("static/index.html")
-
-
-@app.get("/upload")
-async def upload_page():
-    return FileResponse("static/index.html")
-
-
-@app.get("/about")
+@app.get("/favicon.ico")
 async def about_page():
+    return FileResponse("static/favicon.ico")
+
+
+app.mount("/_app", StaticFiles(directory="/app/static/_app", html=True), name="static")
+
+
+# everything else
+@app.get("/{file_path:path}")
+async def spa():
     return FileResponse("static/index.html")
-
-
-app.mount("/", StaticFiles(directory="/app/static", html=True), name="static")

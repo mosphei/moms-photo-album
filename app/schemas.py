@@ -66,7 +66,7 @@ class PhotoUpdate(BaseModel):
     # Nested Pydantic model to list people in the image
     people: Optional[List[PersonSchema]] = None
     rotation: Optional[int] = None
-    size: int
+    size: Optional[int] = None
     content_type: Optional[str] = None
 
     class Config:
