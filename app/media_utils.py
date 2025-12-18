@@ -183,6 +183,8 @@ def make_photo_from_file(user_id: int, relative_path: str) -> PhotoModel:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
+    if date_taken is None:
+        date_taken = datetime(1900, 1, 1, 0, 0, 0)
     photo = PhotoModel(
         user_id=user_id,
         file_path=relative_path,
