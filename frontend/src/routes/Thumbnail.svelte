@@ -13,33 +13,41 @@
 </script>
 
 <a class="card" href={photoPath('l', photo)} {onclick}>
-	<img class="card-img-top" bind:this={img} alt={photo.filename} src={photoPath('t', photo)} />
-	<div class="card-body">
-		<div class="card-title">
+	<img bind:this={img} alt={photo.filename} src={photoPath('t', photo)} />
+	<section>
+		<div>
 			{photo.date_taken.toLocaleDateString()}
 		</div>
-		{photo.description}
-	</div>
+		{#if photo.description}
+			<div>{photo.description}</div>
+		{/if}
+	</section>
 </a>
 
 <style>
-	.card {
-		width: 12rem;
-		height: 12rem;
+	a {
+		width: 200px;
+		height: 200px;
 		border: solid 1px;
 		/*margin: 1rem;
 		float: left;*/
 		text-decoration: none;
 		overflow: hidden;
 	}
-	.card:hover {
+	a:hover {
 		border-color: var(--mo-primary);
 		color: var(--mo-primary);
 	}
 	img {
-		width: 12rem;
-		height: 8rem;
+		width: 100%;
+		height: 100%;
 		object-fit: cover;
 		object-position: top;
+	}
+	section {
+		position: absolute;
+		bottom: 0px;
+		width: 100%;
+		background-color: #fff;
 	}
 </style>

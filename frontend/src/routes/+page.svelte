@@ -75,7 +75,11 @@
 
 	function handleLimitChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
 		const x = parseInt(event.currentTarget.value);
-		numPerPage.set(x);
+		if (x < 1) {
+			numPerPage.set(autoItems);
+		} else {
+			numPerPage.set(x);
+		}
 	}
 	// criteria
 	let afterDate = $state($criteria.after ? $criteria.after.toLocaleDateString() : undefined);
@@ -250,9 +254,49 @@
 	}
 
 	let showFilterMenu = $state(false);
+	let containerDiv: HTMLDivElement|undefined = $state();
+	let footerDiv: HTMLDivElement|undefined = $state();
+	let itemsPerPage = $state(0);
+	let autoItems = $state(10);
+	$effect(()=>{
+		if (itemsPerPage == 0) {
+			numPerPage.set(autoItems);
+		}
+	});
+	let autoItemsTimer: any = 0;
+	function getAutoItemsCount() {
+		if (autoItemsTimer) {
+			clearTimeout(autoItemsTimer);
+		}
+		setTimeout(()=>{
+			if (containerDiv && footerDiv) {
+				const containerRect = containerDiv.getBoundingClientRect();
+				const footerRect = footerDiv.getBoundingClientRect();
+				const h = footerRect.top - containerRect.top ;
+				const w = containerRect.width;
+				console.log(`(${w},${h})`);
+				const itemsPerRow = Math.floor(w/220);
+				const itemRows = Math.floor(h/200);
+				autoItems = itemRows *  itemsPerRow;
+				console.log('autoItems', autoItems);
+			} else {
+				// try again
+				getAutoItemsCount();
+			}
+		
+		}, 100);
+	}
+	let innerWidth = $state(0);
+	let innerHeight = $state(0);
+	$effect(()=>{
+		if (innerWidth && innerHeight) {
+			getAutoItemsCount();
+		}
+	});
 </script>
 
 <svelte:head><title>PhotoDB - Moms Photo Album</title></svelte:head>
+<svelte:window bind:innerWidth bind:innerHeight />
 <div id="filters" class="row g-3 align-items-center mb-2">
 	<div class="col-auto">
 		<button class="btn btn-primary" onclick={() => (showFilterMenu = true)}> Filter </button>
@@ -376,11 +420,12 @@
 	to {($currentPage - 1) * $numPerPage + $numPerPage}
 	of {$totalItems}
 </div>
+<div bind:this={containerDiv} style="display: flex; flex-wrap:wrap">
 {#if $items.length == 0}
 	<div class="alert alert-info m-3">No photos found.</div>
 {/if}
 {#each $items as photo}
-	<div style="float:left; position:relative; padding:.5rem">
+	<div style="position:relative; padding:.5rem;">
 		<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
 		<label style="position:absolute;top:0;left:0;padding:1rem" for="select_{photo.id}">
 			<input
@@ -411,14 +456,18 @@
 		</Modal>
 	{/if}
 {/if}
-<div style="clear: both;position:sticky;bottom:4px" class="row g-3">
-	<div class="col-auto">
+</div>
+<div style="clear: both;position:fixed;bottom:0;display:flex;"
+bind:this={footerDiv}
+>
+	<div class="me-3">
 		<Pagination {last} bind:page />
 	</div>
-	<div class="col-auto">
+	<div class="me-3">
 		<div class="input-group">
 			<span class="input-group-text"> Show </span>
-			<select name="nmn" value={$numPerPage} onchange={handleLimitChange} class="form-select">
+			<select name="nmn" value={itemsPerPage} onchange={handleLimitChange} class="form-select">
+				<option value={0}>auto</option>
 				{#each [10, 20, 50, 100] as val}
 					<option>{val}</option>
 				{/each}
@@ -426,7 +475,7 @@
 		</div>
 	</div>
 	{#if selectedPhotos.length}
-		<div class="col-auto">
+		<div class="me-3">
 			<button class="btn btn-primary" onclick={handleEditClick} type="button">
 				Edit
 				{selectedPhotos.length}
