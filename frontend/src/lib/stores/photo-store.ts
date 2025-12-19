@@ -3,8 +3,10 @@ import type { Photo } from '$lib/models/photo';
 import { dateFormat, dateTimeReviver, loadFromLocalstorage, setLocalstorage } from '$lib/utils';
 import { derived, get, writable, type Writable } from 'svelte/store';
 import { fetchApi } from './common-store';
+import { PaginatedStore } from '$lib/models/paginated-store';
+import { tick } from 'svelte';
 
-interface ICriteria {
+export interface ICriteria {
 	q?: string;
 	person_ids?: number[];
 	after?: Date;
@@ -12,21 +14,13 @@ interface ICriteria {
 	sortBy: 'date_taken' | 'date_uploaded' | 'date_updated';
 	sortDescending: boolean;
 }
-
-export async function getPhotos(
-	page: number,
-	pagesize: number,
-	criteria: ICriteria | undefined = undefined
-): Promise<PaginatedResults<Photo> | null> {
-	if (page < 1) {
-		return null;
-	}
-	const offset = (page - 1) * pagesize;
-
+export const photoCriteria = writable({ sortBy: 'date_taken', sortDescending: false } as ICriteria);
+export const paginatedPhotos = new PaginatedStore<Photo>(async (offset: number, limit: number) => {
 	const urlParams = new URLSearchParams({
 		offset: `${offset}`,
-		limit: `${pagesize}`
+		limit: `${limit}`
 	});
+	const criteria = get(photoCriteria);
 	if (criteria) {
 		if (criteria.q && criteria.q.length > 2) {
 			urlParams.append('q', criteria.q);
@@ -55,48 +49,18 @@ export async function getPhotos(
 	const result: PaginatedResults<Photo> = await JSON.parse(response || '[]', dateTimeReviver);
 	// console.log(`getPhotos`, result);
 	return result;
-}
-
-const itemList = writable([] as Photo[]);
-const initialNumPerPage = loadFromLocalstorage('numPerPage') || '10';
-const numPerPage = writable(parseInt(initialNumPerPage));
-numPerPage.subscribe((n) => setLocalstorage('numPerPage', n));
-const currentPage = writable(0);
-const totalItems = writable(null as null | number);
-const criteria = writable({ sortBy: 'date_taken', sortDescending: false } as ICriteria);
-//debounce?
-let fetchTimerId: any = undefined;
-async function refreshItems(_page: number, _pagesize: number, _criteria: ICriteria) {
-	const result = await getPhotos(_page, _pagesize, _criteria);
-	if (result) {
-		itemList.set(result.items);
-		if (result.total_count) {
-			totalItems.set(result.total_count);
-		}
+});
+photoCriteria.subscribe((C) => {
+	console.log(C, get(paginatedPhotos.currentPage));
+	if (get(paginatedPhotos.currentPage) != 1) {
+		console.log('setting page to 1');
+		tick().then(() => {
+			paginatedPhotos.setCurrentPage(1);
+		});
+	} else {
+		paginatedPhotos.refresh();
 	}
-}
-const changes = derived(
-	[currentPage, numPerPage, criteria],
-	([CurrentPage, NumPerPage, Criteria]) => {
-		if (fetchTimerId) {
-			console.log('debounce');
-			clearTimeout(fetchTimerId);
-		}
-		fetchTimerId = setTimeout(() => refreshItems(CurrentPage, NumPerPage, Criteria), 50);
-	}
-);
-changes.subscribe((x) => console.log('changed'));
-
-export const photopages = {
-	items: derived(itemList, (_) => _),
-	numPerPage,
-	currentPage,
-	totalItems,
-	criteria,
-	refresh: async () => await refreshItems(get(currentPage), get(numPerPage), get(criteria))
-};
-// load the first page
-currentPage.set(1);
+});
 
 export async function savePhoto(id: number, photo: Partial<Photo>) {
 	console.log('saving photo', photo);
@@ -109,7 +73,8 @@ export async function savePhoto(id: number, photo: Partial<Photo>) {
 	});
 	if (response) {
 		const result: Photo = JSON.parse(response, dateTimeReviver);
-		itemList.update((items) => items.map((itm) => (itm.id === result.id ? result : itm)));
+		// itemList.update((items) => items.map((itm) => (itm.id === result.id ? result : itm)));
+		paginatedPhotos.refresh();
 	}
 	console.log('save response', response);
 }

@@ -76,12 +76,13 @@
 		</div>
 	</div>
 </nav>
+
 <style>
 	nav {
 		position: sticky;
 		top: 0;
 		width: 100%;
-		box-shadow: 0 .5em .5em #0000004d;
+		box-shadow: 0 0.5em 0.5em #0000004d;
 		z-index: 10;
 	}
 </style>
