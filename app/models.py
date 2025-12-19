@@ -57,10 +57,10 @@ class PersonModel(Base):
 class PersonCountModel(Base):
     """
     CREATE VIEW person_photo_counts AS
-    SELECT person_id as id,count(*) as photo_count, people.name, past_names
-    FROM photo_person_association
-    LEFT JOIN people ON person_id=people.id
-    GROUP BY person_id
+    SELECT id,name,past_names,count(*) as photo_count
+    FROM people
+    LEFT JOIN photo_person_association ON id = photo_person_association.person_id
+    GROUP BY id,name,past_names
     """
 
     __tablename__ = "person_photo_counts"

@@ -5,8 +5,9 @@ import { derived, get, writable, type Writable } from 'svelte/store';
 import { fetchApi } from './common-store';
 import { PaginatedStore } from '$lib/models/paginated-store';
 import { tick } from 'svelte';
+import { errorAlert } from '$lib/alerts';
 
-export interface ICriteria {
+export interface IPhotoCriteria {
 	q?: string;
 	person_ids?: number[];
 	after?: Date;
@@ -14,8 +15,11 @@ export interface ICriteria {
 	sortBy: 'date_taken' | 'date_uploaded' | 'date_updated';
 	sortDescending: boolean;
 }
-export const photoCriteria = writable({ sortBy: 'date_taken', sortDescending: false } as ICriteria);
-export const paginatedPhotos = new PaginatedStore<Photo>(async (offset: number, limit: number) => {
+export const photoCriteria = writable({
+	sortBy: 'date_taken',
+	sortDescending: false
+} as IPhotoCriteria);
+export const photoStore = new PaginatedStore<Photo>(async (offset: number, limit: number) => {
 	const urlParams = new URLSearchParams({
 		offset: `${offset}`,
 		limit: `${limit}`
@@ -43,22 +47,33 @@ export const paginatedPhotos = new PaginatedStore<Photo>(async (offset: number, 
 	}
 	const url = `/api/images/?${urlParams.toString()}`;
 	console.log(`url:${url}`);
-	const response = await fetchApi(url, {
-		headers: { accept: 'application/json' }
-	});
-	const result: PaginatedResults<Photo> = await JSON.parse(response || '[]', dateTimeReviver);
-	// console.log(`getPhotos`, result);
-	return result;
+	try {
+		const response = await fetchApi(url, {
+			headers: { accept: 'application/json' }
+		});
+		const result: PaginatedResults<Photo> = await JSON.parse(response || '[]', dateTimeReviver);
+		console.log(`getPhotos`, result);
+		return result;
+	} catch (error) {
+		errorAlert(`unable to get photos`, error, 10000);
+	}
+	return {
+		items: [],
+		offset,
+		limit,
+		total_count: 0
+	};
 });
+// go back to page 1 if criteria change
 photoCriteria.subscribe((C) => {
-	console.log(C, get(paginatedPhotos.currentPage));
-	if (get(paginatedPhotos.currentPage) != 1) {
+	console.log(C, get(photoStore.currentPage));
+	if (get(photoStore.currentPage) != 1) {
 		console.log('setting page to 1');
 		tick().then(() => {
-			paginatedPhotos.setCurrentPage(1);
+			photoStore.setCurrentPage(1);
 		});
 	} else {
-		paginatedPhotos.refresh();
+		photoStore.refresh();
 	}
 });
 
@@ -74,7 +89,7 @@ export async function savePhoto(id: number, photo: Partial<Photo>) {
 	if (response) {
 		const result: Photo = JSON.parse(response, dateTimeReviver);
 		// itemList.update((items) => items.map((itm) => (itm.id === result.id ? result : itm)));
-		paginatedPhotos.refresh();
+		photoStore.refresh();
 	}
 	console.log('save response', response);
 }

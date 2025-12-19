@@ -2,11 +2,11 @@
 	import { clickOutside } from '$lib/click-outside';
 	import PersonChooser from '$lib/components/PersonChooser.svelte';
 	import type { Person } from '$lib/models/person';
-	import type { ICriteria } from '$lib/stores/photo-store';
+	import type { IPhotoCriteria } from '$lib/stores/photo-store';
 	import type { Writable } from 'svelte/store';
 	import { fly } from 'svelte/transition';
 
-	let { criteria }: { criteria: Writable<ICriteria> } = $props();
+	let { criteria }: { criteria: Writable<IPhotoCriteria> } = $props();
 	let showFilterMenu = $state(false);
 	let afterDate = $state($criteria.after ? $criteria.after.toLocaleDateString() : undefined);
 	let beforeDate = $state($criteria.before ? $criteria.before.toLocaleDateString() : undefined);

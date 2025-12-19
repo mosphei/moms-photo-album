@@ -1,7 +1,7 @@
 <script lang="ts">
 	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import type { Photo } from '$lib/models/photo';
-	import { paginatedPhotos, photoCriteria } from '$lib/stores/photo-store';
+	import { photoStore, photoCriteria } from '$lib/stores/photo-store';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import Thumbnail from './Thumbnail.svelte';
 	import PhotoViewer from './PhotoViewer.svelte';
@@ -14,20 +14,22 @@
 	import { clickOutside } from '$lib/click-outside';
 	import { get } from 'svelte/store';
 	import FilterComponent from './FilterComponent.svelte';
+	import { pushState } from '$app/navigation';
 
-	let { currentPage, numPerPage, currentItems, totalCount, lastPage } = paginatedPhotos;
+	let { currentPage, numPerPage, currentItems, totalCount, lastPage } = photoStore;
 	let currentPhotoIndex = $state(-1);
 	let selectedPhotos: number[] = $state([]);
-	let page = $state($currentPage);
+	let pp = $state($currentPage);
 
 	$effect(() => {
-		if (page !== $currentPage) {
-			paginatedPhotos.setCurrentPage(page);
+		if (pp !== $currentPage) {
+			photoStore.setCurrentPage(pp);
+			pushState(`?page=${pp}`, { pp: pp });
 		}
 	});
 	currentPage.subscribe((C) => {
-		if (page !== C) {
-			page = C;
+		if (pp !== C) {
+			pp = C;
 		}
 	});
 
@@ -42,9 +44,9 @@
 		event.preventDefault();
 		selectedPhotos = [];
 		if (currentPhotoIndex < 1) {
-			if (page > 1) {
+			if (pp > 1) {
 				console.log('prev page');
-				page = page - 1;
+				pp = pp - 1;
 				currentPhotoIndex = $currentItems.length - 1;
 			} else {
 				currentPhotoIndex = 0;
@@ -58,8 +60,8 @@
 		selectedPhotos = [];
 		if (currentPhotoIndex >= $currentItems.length - 1) {
 			// need a new page
-			if (!$lastPage || $lastPage > page) {
-				page = page + 1;
+			if (!$lastPage || $lastPage > pp) {
+				pp = pp + 1;
 				currentPhotoIndex = 0;
 			}
 		} else {
@@ -70,9 +72,9 @@
 	function handleLimitChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
 		const x = parseInt(event.currentTarget.value);
 		if (x < 1) {
-			paginatedPhotos.setNumPerPage(autoItems);
+			photoStore.setNumPerPage(autoItems);
 		} else {
-			paginatedPhotos.setNumPerPage(x);
+			photoStore.setNumPerPage(x);
 		}
 	}
 	// criteria
@@ -119,7 +121,7 @@
 	let autoItems = $state(10);
 	$effect(() => {
 		if (itemsPerPage == 0) {
-			paginatedPhotos.setNumPerPage(autoItems);
+			photoStore.setNumPerPage(autoItems);
 		}
 	});
 	let autoItemsTimer: any = 0;
@@ -201,7 +203,7 @@
 </div>
 <div style="clear: both;position:fixed;bottom:0;display:flex;" bind:this={footerDiv}>
 	<div class="me-3">
-		<Pagination last={$lastPage} bind:page />
+		<Pagination last={$lastPage} bind:page={pp} />
 	</div>
 	<div class="me-3">
 		<div class="input-group">
