@@ -25,6 +25,11 @@
 			paginatedPhotos.setCurrentPage(page);
 		}
 	});
+	currentPage.subscribe((C) => {
+		if (page !== C) {
+			page = C;
+		}
+	});
 
 	function handleThumbnailClick(e: MouseEvent, photo: Photo): void {
 		e.preventDefault();
