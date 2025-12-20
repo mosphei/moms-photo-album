@@ -8,13 +8,7 @@
 	import PhotoEditor from './PhotoEditor.svelte';
 	import { tick } from 'svelte';
 	import Modal from '$lib/components/Modal.svelte';
-	import type { Person } from '$lib/models/person';
-	import PersonChooser from '$lib/components/PersonChooser.svelte';
-	import { fly } from 'svelte/transition';
-	import { clickOutside } from '$lib/click-outside';
-	import { get } from 'svelte/store';
 	import FilterComponent from './FilterComponent.svelte';
-	import { pushState } from '$app/navigation';
 
 	let { currentPage, numPerPage, currentItems, totalCount, lastPage } = photoStore;
 	let currentPhotoIndex = $state(-1);
@@ -24,7 +18,7 @@
 	$effect(() => {
 		if (pp !== $currentPage) {
 			photoStore.setCurrentPage(pp);
-			pushState(`?page=${pp}`, { pp: pp });
+			// pushState(`?page=${pp}`, { pp: pp });
 		}
 	});
 	currentPage.subscribe((C) => {
@@ -203,7 +197,7 @@
 </div>
 <div style="clear: both;position:fixed;bottom:0;display:flex;" bind:this={footerDiv}>
 	<div class="me-3">
-		<Pagination last={$lastPage} bind:page={pp} />
+		<Pagination last={$lastPage} bind:page={pp} width={7}/>
 	</div>
 	<div class="me-3">
 		<div class="input-group">
