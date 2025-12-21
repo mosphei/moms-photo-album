@@ -131,6 +131,7 @@
 		}
 	});
 	let autoItemsTimer: any = 0;
+	const thumbWidth = 300;
 	function getAutoItemsCount() {
 		if (autoItemsTimer) {
 			clearTimeout(autoItemsTimer);
@@ -142,8 +143,8 @@
 				const h = footerRect.top - containerRect.top;
 				const w = containerRect.width;
 				console.log(`(${w},${h})`);
-				const itemsPerRow = Math.floor(w / 220);
-				const itemRows = Math.floor(h / 200);
+				const itemsPerRow = Math.floor(w / thumbWidth);
+				const itemRows = Math.floor(h / thumbWidth);
 				autoItems = itemRows * itemsPerRow;
 				console.log('autoItems', autoItems);
 				if (autoItems < 10) {
@@ -178,7 +179,7 @@
 		<div class="alert alert-info m-3">No photos found.</div>
 	{/if}
 	{#each $currentItems as photo}
-		<div style="position:relative; padding:5px;">
+		<div class="thumb-container" style="width:{thumbWidth}px">
 			<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
 			<label style="position:absolute;top:0;left:0;padding:1rem" for="select_{photo.id}">
 				<input
@@ -237,3 +238,9 @@
 	<PhotoEditor photos={photosToEdit} onsave={handleOnSave} oncancel={() => editDialog?.close()} />
 </Modal>
 <DebugPanel value={{ state: page.state, currentPage: $currentPage, photos: $currentItems }} />
+<style>
+	.thumb-container {
+		position:relative; 
+		padding:5px;
+	}
+</style>
