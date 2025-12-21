@@ -199,22 +199,8 @@
 	{/if}
 </div>
 <div style="clear: both;position:fixed;bottom:0;display:flex;" bind:this={footerDiv}>
-	<div class="me-3">
-		<Pagination last={$lastPage} bind:page={pp} width={7} />
-	</div>
-	<div class="me-3">
-		<div class="input-group">
-			<span class="input-group-text"> Show </span>
-			<select name="nmn" value={itemsPerPage} onchange={handleLimitChange} class="form-select">
-				<option value={0}>auto</option>
-				{#each [10, 20, 50, 100] as val}
-					<option>{val}</option>
-				{/each}
-			</select>
-		</div>
-	</div>
 	{#if selectedPhotos.length}
-		<div class="me-3">
+		<div class="me-3 pb-3">
 			<button class="btn btn-primary" onclick={handleEditClick} type="button">
 				Edit
 				{selectedPhotos.length}
@@ -222,6 +208,21 @@
 			<button class="btn btn-secondary" onclick={() => (selectedPhotos = [])} type="button">
 				Deselect
 			</button>
+		</div>
+	{:else}
+		<div class="me-3">
+			<Pagination last={$lastPage} bind:page={pp} width={5} />
+		</div>
+		<div class="me-3">
+			<div class="input-group">
+				<span class="input-group-text d-none d-md-inline"> Show </span>
+				<select name="nmn" value={itemsPerPage} onchange={handleLimitChange} class="form-select">
+					<option value={0}>auto</option>
+					{#each [10, 20, 50, 100] as val}
+						<option>{val}</option>
+					{/each}
+				</select>
+			</div>
 		</div>
 	{/if}
 </div>

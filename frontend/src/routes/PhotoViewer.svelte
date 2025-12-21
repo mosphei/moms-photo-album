@@ -41,12 +41,16 @@
 				style="object-fit:contain;object-position:center;width:100%;height:100%"
 			/>
 		{/if}
-		<button class="left" aria-label="Previous" type="button" onclick={onprev}>
-			<span></span>
-		</button>
-		<button class="right" aria-label="Next" type="button" onclick={onnext}>
-			<span></span>
-		</button>
+		<div class="left">
+			<button aria-label="Previous" type="button" onclick={onprev}>
+				<span></span>
+			</button>
+		</div>
+		<div class="right">
+			<button aria-label="Next" type="button" onclick={onnext}>
+				<span></span>
+			</button>
+		</div>
 	</div>
 	<div>
 		{photo.description}
@@ -84,10 +88,6 @@
 		padding: 0;
 		color: #fff;
 		text-align: center;
-		background: 0 0;
-		border: 0;
-		opacity: 0.5;
-		transition: opacity 0.15s ease;
 	}
 	.left {
 		left: 0;
@@ -95,8 +95,8 @@
 	.right {
 		right: 0;
 	}
-	.left:hover,
-	.right:hover {
+	.left button:hover,
+	.right button:hover {
 		color: var(--mo-primary);
 		opacity: 1;
 	}
@@ -114,5 +114,14 @@
 	}
 	.left span {
 		background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z'/%3e%3c/svg%3e");
+	}
+	button {
+		border: none;
+		background: transparent;
+		padding: 1rem;
+		background: 0 0;
+		border: 0;
+		opacity: 0.5;
+		transition: opacity 0.15s ease;
 	}
 </style>
