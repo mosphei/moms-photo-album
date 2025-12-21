@@ -26,8 +26,8 @@
 
 <style>
 	a {
-		width: 200px;
-		height: 200px;
+		width: 100%;
+		height: 100%;
 		border: solid 1px;
 		/*margin: 1rem;
 		float: left;*/

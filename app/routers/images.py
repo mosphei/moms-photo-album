@@ -180,7 +180,7 @@ async def get_image_file(
                 if not os.path.exists(file_location):
                     APP_ENV = os.getenv("APP_ENV", "production")
                     if APP_ENV == "development":
-                        file_location = "test.png"
+                        file_location = "test.jpg"
                     else:
                         raise HTTPException(
                             status_code=500,

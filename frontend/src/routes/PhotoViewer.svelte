@@ -38,7 +38,7 @@
 			<img
 				src={photoPath('m', photo)}
 				alt={photo.filename}
-				style="object-fit:contain;object-position:center;width:100%;height:100%"
+				style="object-fit:contain;object-position:center;width:100%;max-height: 100vh;"
 			/>
 		{/if}
 		<div class="left">
@@ -68,6 +68,8 @@
 		--mo-heading-color: var(--mo-primary);
 		--mo-modal-header-padding: 0.25rem;
 		--mo-modal-padding: 0.25rem;
+		background-color: black;
+		color: white;
 	}
 
 	/* Styles for the backdrop */

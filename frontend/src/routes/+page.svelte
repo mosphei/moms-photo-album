@@ -146,6 +146,9 @@
 				const itemRows = Math.floor(h / 200);
 				autoItems = itemRows * itemsPerRow;
 				console.log('autoItems', autoItems);
+				if (autoItems < 10) {
+					autoItems = 10;
+				}
 			} else {
 				// try again
 				getAutoItemsCount();
@@ -170,12 +173,12 @@
 	to {($currentPage - 1) * $numPerPage + $numPerPage}
 	of {$totalCount}
 </div>
-<div bind:this={containerDiv} style="display: flex; flex-wrap:wrap">
+<div bind:this={containerDiv} style="display: flex; flex-wrap:wrap; justify-content:space-around;">
 	{#if $currentItems.length == 0}
 		<div class="alert alert-info m-3">No photos found.</div>
 	{/if}
 	{#each $currentItems as photo}
-		<div style="position:relative; padding:.5rem;">
+		<div style="position:relative; padding:5px;">
 			<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
 			<label style="position:absolute;top:0;left:0;padding:1rem" for="select_{photo.id}">
 				<input

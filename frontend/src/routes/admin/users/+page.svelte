@@ -9,11 +9,10 @@
 	import { onMount } from 'svelte';
 	import NewUserForm from './NewUserForm.svelte';
 	import EditUserForm from './EditUserForm.svelte';
-	const userstore = new PaginatedStore<User>(async (page: number, numPerPage: number) => {
-		const offset = (page - 1) * numPerPage;
+	const userstore = new PaginatedStore<User>(async (offset: number, limit: number) => {
 		const urlParams = new URLSearchParams({
 			offset: `${offset}`,
-			limit: `${numPerPage}`
+			limit: `${limit}`
 		});
 		const url = '/api/admin/users?' + urlParams.toString();
 		try {

@@ -3,6 +3,7 @@
 	import { fakeUploadFileWithProgress, uploadFileWithProgress, type IUpload } from './upload-file';
 	import UploadCard, { type IFileInfo } from './UploadCard.svelte';
 	import { photoStore } from '$lib/stores/photo-store';
+	import { resolve } from '$app/paths';
 
 	const MAX = 2;
 
@@ -89,15 +90,25 @@
 <svelte:head><title>PhotoDB - Upload</title></svelte:head>
 <h1>Upload</h1>
 <p>Select one or more image files</p>
-{#each fileList as f}
-	<UploadCard fileEntry={f} />
-{/each}
-<button onclick={onSelectFiles} class="btn btn-primary" disabled={busy}>Upload</button>
-<input
-	type="file"
-	bind:this={input}
-	accept="image/*,video/*"
-	multiple
-	style="display:none"
-	onchange={handleOnChange}
-/>
+<div class="d-sm-flex flex-wrap">
+	{#each fileList as f}
+		<UploadCard fileEntry={f} />
+	{/each}
+</div>
+<div class="d-flex">
+	<input
+		type="file"
+		bind:this={input}
+		accept="image/*,video/*"
+		multiple
+		style="display:none"
+		onchange={handleOnChange}
+	/>
+	<button onclick={onSelectFiles} class="btn btn-primary me-3" disabled={busy}>
+		Upload
+		{#if fileList.length}
+			more
+		{/if}
+	</button>
+	<a class="btn btn-secondary" href={resolve('/')}>Done</a>
+</div>

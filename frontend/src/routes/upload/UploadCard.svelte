@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { derived, type Writable } from 'svelte/store';
 	import type { IUpload } from './upload-file';
+	import { type Photo, photoPath } from '$lib/models/photo';
 
 	export interface IFileInfo {
 		filename: string;
@@ -19,7 +20,7 @@
 <div
 	class={{
 		alert: true,
-		'mb-3': true,
+		'me-3': true,
 		'alert-secondary': $status == 'waiting',
 		'alert-primary': $status == 'uploading',
 		'alert-success': $status == 'complete',
@@ -28,14 +29,16 @@
 >
 	<strong>
 		{fileEntry.filename}
-		{$status}:
-		{$result?.statusCode}
-		{$result?.statusText}
 	</strong>
-	<div>
-		{$result?.detail}
-	</div>
-
+	{#if $result?.statusCode == 200 && $result?.detail}
+		{@const photo = JSON.parse($result.detail) as Photo}
+		<img src={photoPath('t', photo)} alt={fileEntry.filename} />
+		<div>{photo.date_taken}</div>
+		<div>{photo.size}</div>
+		<div>{photo.description}</div>
+	{:else}
+		<div>{$status}: {$result?.detail}</div>
+	{/if}
 	<div
 		class="progress"
 		role="progressbar"
@@ -49,3 +52,9 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	.alert {
+		width: 16rem;
+	}
+</style>
