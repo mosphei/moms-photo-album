@@ -9,12 +9,13 @@
 	import { tick } from 'svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import FilterComponent from './FilterComponent.svelte';
+	import { pushState, replaceState } from '$app/navigation';
+	import { page } from '$app/state';
 
 	let { currentPage, numPerPage, currentItems, totalCount, lastPage } = photoStore;
-	let currentPhotoIndex = $state(-1);
 	let selectedPhotos: number[] = $state([]);
 	let pp = $state($currentPage);
-
+	pushState('', { showViewModal: false });
 	$effect(() => {
 		if (pp !== $currentPage) {
 			photoStore.setCurrentPage(pp);
@@ -26,41 +27,53 @@
 			pp = C;
 		}
 	});
-
+	// let showViewModal = $state(false);
 	function handleThumbnailClick(e: MouseEvent, photo: Photo): void {
 		e.preventDefault();
-		currentPhotoIndex = $currentItems.findIndex((p) => p.id === photo.id);
-		tick().then((_) => viewdialog!.open());
+		const x = $currentItems.findIndex((p) => p.id === photo.id);
+		pushState(`?show`, { currentItemIndex: x, showViewModal: true });
+
+		//tick().then((_) => viewdialog!.open());
 	}
 
-	function handlePrev(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
+	function handlePrev() {
 		console.log('handlePrev');
-		event.preventDefault();
+		const { currentItemIndex } = page.state;
 		selectedPhotos = [];
-		if (currentPhotoIndex < 1) {
+		let prevItemIndex = currentItemIndex == undefined ? 0 : currentItemIndex - 1;
+		if (prevItemIndex < 0) {
 			if (pp > 1) {
 				console.log('prev page');
 				pp = pp - 1;
-				currentPhotoIndex = $currentItems.length - 1;
+				prevItemIndex = $numPerPage - 1;
 			} else {
-				currentPhotoIndex = 0;
+				// already on first page
+				prevItemIndex = 0;
 			}
-		} else {
-			currentPhotoIndex = currentPhotoIndex - 1;
 		}
+		console.log(`prevItemIndex:${prevItemIndex}`);
+		replaceState('?prev', {
+			showViewModal: true,
+			currentItemIndex: prevItemIndex
+		});
 	}
 
-	function handleNext(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
+	function handleNext() {
 		selectedPhotos = [];
-		if (currentPhotoIndex >= $currentItems.length - 1) {
+		const { currentItemIndex } = page.state;
+		let nextItemIndex = currentItemIndex === undefined ? 0 : currentItemIndex + 1;
+		if (nextItemIndex >= $currentItems.length) {
 			// need a new page
 			if (!$lastPage || $lastPage > pp) {
 				pp = pp + 1;
-				currentPhotoIndex = 0;
+				nextItemIndex = 0;
 			}
-		} else {
-			currentPhotoIndex = currentPhotoIndex + 1;
 		}
+		console.log(`next:${nextItemIndex}`);
+		replaceState('?next', {
+			showViewModal: true,
+			currentItemIndex: nextItemIndex
+		});
 	}
 
 	function handleLimitChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
@@ -102,7 +115,6 @@
 		photosToEdit = $currentItems.filter((p) => selectedPhotos.includes(p.id));
 		editDialog!.open();
 	}
-	let viewdialog: Modal | undefined = $state(undefined);
 
 	function handleOnSave(): void {
 		editDialog?.close();
@@ -176,28 +188,19 @@
 			</label>
 		</div>
 	{/each}
-	{#if currentPhotoIndex >= 0}
-		{@const photo = $currentItems[currentPhotoIndex]}
+	{#if page.state.showViewModal}
+		{@const photo =
+			page.state.currentItemIndex === undefined
+				? undefined
+				: $currentItems[page.state.currentItemIndex]}
 		{#if photo}
-			<Modal bind:this={viewdialog}>
-				{#snippet title()}
-					{photo.date_taken.toLocaleDateString()}
-					{photo.filename}
-				{/snippet}
-				<div class="d-flex justify-content-center">
-					<PhotoViewer {photo} />
-				</div>
-				{#snippet footer()}
-					<button type="button" class="btn btn-primary" onclick={handlePrev}>Prev</button>
-					<button type="button" class="btn btn-primary" onclick={handleNext}>Next</button>
-				{/snippet}
-			</Modal>
+			<PhotoViewer {photo} onnext={handleNext} onprev={handlePrev} />
 		{/if}
 	{/if}
 </div>
 <div style="clear: both;position:fixed;bottom:0;display:flex;" bind:this={footerDiv}>
 	<div class="me-3">
-		<Pagination last={$lastPage} bind:page={pp} width={7}/>
+		<Pagination last={$lastPage} bind:page={pp} width={7} />
 	</div>
 	<div class="me-3">
 		<div class="input-group">
@@ -229,4 +232,4 @@
 	{/snippet}
 	<PhotoEditor photos={photosToEdit} onsave={handleOnSave} oncancel={() => editDialog?.close()} />
 </Modal>
-<DebugPanel value={{ currentPage: $currentPage, photos: $currentItems }} />
+<DebugPanel value={{ state: page.state, currentPage: $currentPage, photos: $currentItems }} />

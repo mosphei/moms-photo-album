@@ -13,7 +13,7 @@ export class PaginatedStore<T> {
 	public totalCount = derived(this.total_items, (TI) => (TI < 0 ? undefined : TI));
 	fetcher: (offset: number, limit: number) => Promise<PaginatedResults<T>>;
 	async refresh() {
-		const paginated = await this.fetcher(get(this.current_page), get(this.limit));
+		const paginated = await this.fetcher(get(this.offset), get(this.limit));
 		this.items.set(paginated.items);
 		if (paginated.total_count !== undefined) {
 			this.total_items.set(paginated.total_count);

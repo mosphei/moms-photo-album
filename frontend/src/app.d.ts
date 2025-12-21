@@ -5,7 +5,10 @@ declare global {
 		// interface Error {}
 		// interface Locals {}
 		// interface PageData {}
-		// interface PageState {}
+		interface PageState {
+			showViewModal?: boolean;
+			currentItemIndex?: number;
+		}
 		// interface Platform {}
 	}
 }
