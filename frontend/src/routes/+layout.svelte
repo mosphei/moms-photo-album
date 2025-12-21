@@ -7,9 +7,13 @@
 	import { fetchApi } from '$lib/stores/common-store';
 	import { page } from '$app/state';
 	import { SvelteToast } from '@zerodevx/svelte-toast';
+	import { photoStore } from '$lib/stores/photo-store';
 
 	let { children } = $props();
 	const loggedIn = session;
+	session.subscribe(() => {
+		photoStore.refresh();
+	});
 
 	async function handleTest() {
 		const txt = await fetchApi('/api/users/me');

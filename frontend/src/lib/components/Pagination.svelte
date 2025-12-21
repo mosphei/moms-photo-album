@@ -16,12 +16,16 @@
 
 <ul class="pagination">
 	<li class={{ 'page-item': true, disabled: page <= 1 }}>
-		<button onclick={() => (page = 1)} class="page-link" disabled={page <= 1}>First</button>
+		<button onclick={() => (page = 1)} class="page-link" disabled={page <= 1}>
+			<span class="d-md-none">&laquo;</span>
+			<span class="d-md-inline d-none">First</span>
+		</button>
 	</li>
 	<li class={{ 'page-item': true, disabled: page <= 1 }}>
-		<button onclick={() => (page = page - 1)} class="page-link" disabled={page <= 1}
-			>Previous</button
-		>
+		<button onclick={() => (page = page - 1)} class="page-link" disabled={page <= 1}>
+			<span class="d-md-none">&lsaquo;</span>
+			<span class="d-md-inline d-none">Previous</span>
+		</button>
 	</li>
 	{#each pages as p}
 		{@const active = p == page}
@@ -33,12 +37,18 @@
 		<button
 			class="page-link"
 			onclick={() => (page = page + 1)}
-			disabled={last ? page >= last : false}>Next</button
+			disabled={last ? page >= last : false}
 		>
+			<span class="d-md-none">&rsaquo;</span>
+			<span class="d-md-inline d-none">Next</span>
+		</button>
 	</li>
 	{#if last}
 		<li class={{ 'page-item': true, disabled: page >= last }}>
-			<button class="page-link" onclick={() => (page = last)} disabled={page >= last}>Last</button>
+			<button class="page-link" onclick={() => (page = last)} disabled={page >= last}>
+				<span class="d-md-none">&raquo;</span>
+				<span class="d-md-inline d-none">Last</span></button
+			>
 		</li>
 	{/if}
 </ul>

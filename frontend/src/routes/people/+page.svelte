@@ -3,13 +3,13 @@
 	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import type { Person } from '$lib/models/person';
-	import { peoplepages, savePerson } from '$lib/stores/people-store';
+	import { peopleStore, peopleCriteria, savePerson } from '$lib/stores/people-store';
 	import { onMount } from 'svelte';
 
-	let { currentPage, numPerPage, items, totalItems, criteria } = peoplepages;
+	let { currentPage, numPerPage, currentItems, totalCount, lastPage } = peopleStore;
 	let page = $state($currentPage);
 	let last: number | undefined = $state(undefined);
-	let q = $state($criteria.q);
+	let q = $state($peopleCriteria.q);
 	let sortDescending = $state(false);
 	// for editing person
 	let editPerson: Person | undefined = $state();
@@ -22,17 +22,15 @@
 			}
 		}
 	}
-	totalItems.subscribe((TOTAL) => setLastPage(TOTAL, $numPerPage));
-	numPerPage.subscribe((LIMIT) => setLastPage($totalItems, LIMIT));
 
 	function handleLimitChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
 		const x = parseInt(event.currentTarget.value);
-		numPerPage.set(x);
+		peopleStore.setNumPerPage(x);
 	}
 
 	$effect(() => {
 		console.log(`q=${q}`);
-		peoplepages.criteria.update((C) => {
+		peopleCriteria.update((C) => {
 			if (q?.length) {
 				C.q = q;
 			} else {
@@ -43,7 +41,7 @@
 	});
 
 	function handleSortChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
-		peoplepages.criteria.update((C) => {
+		peopleCriteria.update((C) => {
 			if (q?.length) {
 				C.q = q;
 			} else {
@@ -54,11 +52,11 @@
 	}
 
 	$effect(() => {
-		currentPage.set(page);
+		peopleStore.setCurrentPage(page);
 	});
 
 	onMount(() => {
-		peoplepages.refresh();
+		peopleStore.refresh();
 	});
 
 	async function handleSave(prson: Person | undefined) {
@@ -110,8 +108,8 @@
 </div>
 <p class="lead">
 	{($currentPage - 1) * $numPerPage + 1}-{$currentPage * $numPerPage}
-	{#if $totalItems}
-		of {$totalItems}
+	{#if $totalCount}
+		of {$totalCount}
 	{/if}
 </p>
 {#snippet viewPersonListItem(person: Person)}
@@ -174,10 +172,10 @@
 {/snippet}
 <!-- the list of people -->
 <div class="list-group mb-3">
-	{#if $items.length == 0}
+	{#if $currentItems.length == 0}
 		<div class="list-group-item">No people found.</div>
 	{/if}
-	{#each $items as person}
+	{#each $currentItems as person}
 		{#if editPerson?.id == person.id}
 			{@render editPersonListItem(person)}
 		{:else}
@@ -201,4 +199,4 @@
 		</div>
 	</div>
 </div>
-<DebugPanel value={{ criteria: $criteria }} />
+<DebugPanel value={{ criteria: $peopleCriteria }} />

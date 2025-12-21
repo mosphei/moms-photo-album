@@ -4,13 +4,16 @@ import type { PaginatedResults } from './paginated-results';
 export class PaginatedStore<T> {
 	private current_page = writable(1);
 	private limit = writable(10);
+	private offset = derived([this.current_page, this.limit], ([P, L]) => {
+		return (P - 1) * L;
+	});
 	private items = writable([] as T[]);
 	public currentItems = derived(this.items, (ITEMS) => ITEMS);
 	private total_items = writable(-1);
 	public totalCount = derived(this.total_items, (TI) => (TI < 0 ? undefined : TI));
-	fetcher: (page: number, numPerPage: number) => Promise<PaginatedResults<T>>;
+	fetcher: (offset: number, limit: number) => Promise<PaginatedResults<T>>;
 	async refresh() {
-		const paginated = await this.fetcher(get(this.current_page), get(this.limit));
+		const paginated = await this.fetcher(get(this.offset), get(this.limit));
 		this.items.set(paginated.items);
 		if (paginated.total_count !== undefined) {
 			this.total_items.set(paginated.total_count);

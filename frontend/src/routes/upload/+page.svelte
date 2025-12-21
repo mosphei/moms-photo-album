@@ -2,7 +2,7 @@
 	import { derived, get, writable, type Readable, type Writable } from 'svelte/store';
 	import { fakeUploadFileWithProgress, uploadFileWithProgress, type IUpload } from './upload-file';
 	import UploadCard, { type IFileInfo } from './UploadCard.svelte';
-	import { photopages } from '$lib/stores/photo-store';
+	import { photoStore } from '$lib/stores/photo-store';
 
 	const MAX = 2;
 
@@ -52,7 +52,7 @@
 				}
 				if (uploading.length === 0) {
 					busy = false;
-					photopages.refresh();
+					photoStore.refresh();
 				}
 			});
 		}
