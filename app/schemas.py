@@ -107,3 +107,14 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: str | None = None
+
+
+class SlideshowSchema(BaseModel):
+    id: int
+    title: str
+    user: UserSchema
+    length: int
+    slides: List[PhotoSchema]
+class SlideshowCreate(BaseModel):
+    title: str
+    slides: List[PhotoSchema] = []

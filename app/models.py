@@ -22,8 +22,6 @@ from sqlalchemy.dialects.mysql import LONGTEXT
 
 Base = declarative_base()
 
-# Association Table for the many-to-many relationship
-# It only needs to store the foreign keys
 photo_person_association = Table(
     "photo_person_association",
     Base.metadata,
@@ -157,3 +155,18 @@ class SearchPhotoModel(Base):
     photo_id = mapped_column(Integer, nullable=False, primary_key=True)
     relevance = mapped_column(Float, nullable=False)
     date_seen = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class SlideShow(Base):
+    __tablename__ = "slideshows"
+    id = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = mapped_column(Integer, ForeignKey("users.id"))
+    title = mapped_column(String(255), nullable=False)
+
+
+photo_slideshow_association = Table(
+    "photo_slideshow_association",
+    Base.metadata,
+    Column("photo_id", Integer, ForeignKey("photos.id"), primary_key=True),
+    Column("slideshow_id", Integer, ForeignKey("slideshows.id"), primary_key=True),
+)
