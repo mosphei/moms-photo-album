@@ -33,32 +33,64 @@
 			slides = JSON.parse(response, dateTimeReviver);
 		}
 	}
+	let playList: Photo[] = $state([]);
 	let shuffle = $state(false);
+	$effect(() => {
+		if (slides.length) {
+			let slideIndices = Array.from({ length: slides.length }).map((v, i) => i);
+			if (shuffle) {
+				slideIndices = slideIndices.toSorted((a, b) => Math.random() - 0.5);
+			}
+			playList = slideIndices.map((i) => slides[i]);
+		}
+	});
 	let currentIdx = $state(0);
-	let nextIdx = $state(1);
 
 	function nextItem() {
-		console.log('nextItem');
-		currentIdx = nextIdx;
-		if (shuffle) {
-			nextIdx = Math.floor(Math.random() * slides.length);
-		} else {
-			nextIdx = currentIdx + 1;
+		console.log('nextItem', page.state.showViewModal);
+		if (!page.state.showViewModal) {
+			stopTimer();
 		}
+		if (currentIdx >= playList.length - 1) {
+			currentIdx = 0;
+		} else {
+			currentIdx = currentIdx + 1;
+		}
+		const nextIdx = currentIdx + 1;
+
 		// cache the next img
-		fetch(photoPath('l', slides[nextIdx]));
+		fetch(photoPath('l', playList[nextIdx]));
 	}
+	function prevItem() {
+		if (currentIdx <= 0) {
+			currentIdx = playList.length - 1;
+		} else {
+			currentIdx = currentIdx - 1;
+		}
+	}
+
 	let intervalTimerId: any;
-	$effect(() => {
-		if (page.state.showViewModal) {
-			if (intervalTimerId) {
-				clearInterval(intervalTimerId);
+	function startTimer() {
+		if (intervalTimerId) {
+			clearInterval(intervalTimerId);
+		}
+		console.log('startTimer');
+		intervalTimerId = setInterval(() => {
+			if (page.state.showViewModal) {
+				nextItem();
+			} else {
+				stopTimer();
 			}
-			intervalTimerId = setInterval(() => {
-				if (page.state.showViewModal) {
-					nextItem();
-				}
-			}, duration);
+		}, duration);
+	}
+	function stopTimer() {
+		console.log('stopTimer');
+		clearInterval(intervalTimerId);
+	}
+	$effect(() => {
+		console.log('page.state.showViewModal', page.state.showViewModal);
+		if (page.state.showViewModal) {
+			startTimer();
 		} else {
 			if (intervalTimerId) {
 				clearInterval(intervalTimerId);
@@ -78,17 +110,47 @@
 		}
 		getSlides(data.id);
 	});
+
+	function handleKeydown(event: KeyboardEvent & { currentTarget: EventTarget & Window }) {
+		console.log(`Key pressed: ${event.key}`);
+		if (event.key == 'ArrowLeft') {
+			event.preventDefault();
+			prevItem();
+			startTimer();
+		} else if (event.key == 'ArrowRight') {
+			event.preventDefault();
+			nextItem();
+			startTimer();
+		}
+	}
+
+	function handleThumbClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLAnchorElement },
+		photo: Photo
+	) {
+		event.preventDefault();
+		const idx = playList.findIndex((s) => s.id == photo.id);
+		if (idx >= 0) {
+			currentIdx = idx;
+			play();
+		}
+	}
 </script>
 
+<svelte:window onkeydown={handleKeydown} />
 <PageTitle {title}>
-	<h1>Slideshow {title}</h1>
-	<small><button onclick={play}> Play </button></small>
+	<h1>
+		Slideshow {title}
+		<small
+			><button onclick={play} type="button" class="btn btn-outline-primary"> Play </button></small
+		>
+	</h1>
 </PageTitle>
 
 <div class="d-flex flex-wrap justify-space-around">
 	{#snippet thumbnail(photo: Photo)}
 		<div class="thumb-container">
-			<a class="card" href={photoPath('l', photo)}>
+			<a class="card" href={photoPath('l', photo)} onclick={(e) => handleThumbClick(e, photo)}>
 				<img alt={photo.filename} src={photoPath('t', photo)} />
 				<section>
 					<div>
@@ -109,13 +171,37 @@
 	<ModalDialog --background="black">
 		<ModalContent>
 			<ModalBody>
-				{#each [slides[currentIdx]] as slide (currentIdx)}
+				{#each [playList[currentIdx]] as photo (currentIdx)}
 					<div style="width:100%" transition:fade={{ duration: 300 }}>
-						<img src={photoPath('l', slide)} alt={slide.filename} />
+						<div style="width:100%;position:relative;">
+							{#if photo.content_type?.startsWith('video')}
+								<!-- svelte-ignore a11y_media_has_caption -->
+								<video controls poster={photoPath('m', photo)} width="100%">
+									<source src={photoPath('o', photo)} type={photo.content_type} />
+								</video>
+							{:else}
+								<img
+									src={photoPath('m', photo)}
+									alt={photo.filename}
+									style="object-fit:contain;object-position:center;width:100%;max-height: 100vh;"
+								/>
+							{/if}
+							<div class="left">
+								<button aria-label="Previous" type="button" onclick={prevItem}>
+									<span></span>
+								</button>
+							</div>
+							<div class="right">
+								<button aria-label="Next" type="button" onclick={nextItem}>
+									<span></span>
+								</button>
+							</div>
+						</div>
+						<div>
+							{photo.description}
+						</div>
 					</div>
 				{/each}
-
-				<button onclick={nextItem} type="button">Next</button>
 			</ModalBody>
 		</ModalContent>
 	</ModalDialog>
@@ -151,5 +237,56 @@
 		bottom: 0px;
 		width: 100%;
 		background-color: #fff;
+	}
+	/* next, prev buttons */
+	.left,
+	.right {
+		position: absolute;
+		top: 0;
+		bottom: 2rem;
+		z-index: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 15%;
+		padding: 0;
+		color: #fff;
+		text-align: center;
+	}
+	.left {
+		left: 0;
+	}
+	.right {
+		right: 0;
+	}
+	.left button:hover,
+	.right button:hover {
+		color: var(--mo-primary);
+		opacity: 1;
+	}
+	.left span,
+	.right span {
+		display: inline-block;
+		width: 2rem;
+		height: 2rem;
+		background-repeat: no-repeat;
+		background-position: 50%;
+		background-size: 100% 100%;
+	}
+	.right span {
+		background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+	}
+	.left span {
+		background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z'/%3e%3c/svg%3e");
+	}
+	.left button,
+	.right button {
+		border: none;
+		background: transparent;
+		padding: 1rem;
+		background: 0 0;
+		border: 0;
+		opacity: 0.5;
+		transition: opacity 0.15s ease;
 	}
 </style>
