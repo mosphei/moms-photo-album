@@ -1,7 +1,15 @@
 <script lang="ts">
-	let { children } = $props();
+	import type { Snippet } from 'svelte';
+
+	let {
+		children,
+		contentRef = $bindable()
+	}: {
+		children: Snippet;
+		contentRef?: HTMLDivElement;
+	} = $props();
 </script>
 
-<div class="modal-content">
+<div class="modal-content" bind:this={contentRef}>
 	{@render children()}
 </div>

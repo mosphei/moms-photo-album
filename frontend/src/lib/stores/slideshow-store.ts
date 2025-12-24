@@ -61,8 +61,9 @@ export async function saveSlideshow(slideshow: SlideshowUpdate) {
 			body
 		});
 	}
+	slideshowStore.refresh();
 	if (response) {
-		const result = JSON.parse(response, dateTimeReviver);
+		const result: Slideshow = JSON.parse(response, dateTimeReviver);
 		return result;
 	}
 }

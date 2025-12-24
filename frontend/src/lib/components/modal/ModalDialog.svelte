@@ -4,10 +4,11 @@
 	interface IProps {
 		onclose?: () => void;
 		children: Snippet;
+		dialog?: HTMLDialogElement;
 	}
-	let { onclose, children }: IProps = $props();
+	let { onclose, children, dialog = $bindable() }: IProps = $props();
 
-	let dialog: HTMLDialogElement | undefined = $state();
+	//let dialog: HTMLDialogElement | undefined = $state();
 
 	function handleClose(event: Event & { currentTarget: EventTarget & HTMLDialogElement }) {
 		event.preventDefault();

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import PageTitle from '$lib/components/PageTitle.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import type { PageProps } from './$types';
 	import { fetchApi } from '$lib/stores/common-store';
 	import { dateTimeReviver } from '$lib/utils';
@@ -14,6 +14,7 @@
 	import { fade } from 'svelte/transition';
 
 	let { data }: PageProps = $props();
+	let contentRef: HTMLDivElement | undefined = $state();
 	$inspect(data);
 	let title = $state(`${data.id}`);
 	let slideshow: Slideshow | undefined = $state();
@@ -24,6 +25,9 @@
 	page.state.currentItemIndex = 0;
 	function play() {
 		pushState('', { showViewModal: true });
+		tick().then(() => {
+			contentRef?.requestFullscreen();
+		});
 	}
 
 	async function getSlides(id: number) {
@@ -169,7 +173,7 @@
 </div>
 {#if page.state.showViewModal}
 	<ModalDialog --background="black">
-		<ModalContent>
+		<ModalContent bind:contentRef>
 			<ModalBody>
 				{#each [playList[currentIdx]] as photo (currentIdx)}
 					<div style="width:100%" transition:fade={{ duration: 300 }}>

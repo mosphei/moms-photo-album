@@ -48,12 +48,14 @@
 			const slides = await getSlides(selectedSlideshow.id);
 			const photo_ids = Array.from(new Set([...slides, ...photos].map((p) => p.id)));
 
-			await saveSlideshow({
+			const result = await saveSlideshow({
 				id: selectedSlideshow.id,
 				title: selectedSlideshow.title,
 				slides: photo_ids
 			});
-
+			if (result) {
+				selectedSlideshow = result;
+			}
 			onclose?.();
 		} catch (error) {
 			errorAlert('unable to save slideshow!', error, 15000);
@@ -84,17 +86,33 @@
 					})
 					.map((p) => p.id)
 			);
-			await saveSlideshow({
+			const result = await saveSlideshow({
 				id: selectedSlideshow.id,
 				title: selectedSlideshow.title,
 				slides: Array.from(photo_ids)
 			});
+			if (result) {
+				selectedSlideshow = result;
+			}
 			onclose?.();
 		} catch (error) {
 			errorAlert('unable to save slideshow!', error, 15000);
 		} finally {
 			msg.dismiss();
 		}
+	}
+
+	let debounce: any;
+	function handleInput(event: Event & { currentTarget: EventTarget & HTMLInputElement }) {
+		if (debounce) {
+			clearTimeout(debounce);
+		}
+		debounce = setTimeout(() => {
+			slideshowStore.criteria = {
+				q: searchText
+			};
+			slideshowStore.refresh();
+		}, 300);
 	}
 </script>
 
@@ -132,7 +150,7 @@
 			</div>
 		{:else}
 			<div>
-				<input class="form-control" bind:value={searchText} />
+				<input class="form-control" bind:value={searchText} oninput={handleInput} />
 			</div>
 			<div class="mb-3 list-group">
 				{#if $currentItems.length < 1}
