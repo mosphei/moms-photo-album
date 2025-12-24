@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, select
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageDraw, ImageFont
 from rapidfuzz import utils
 
 
@@ -178,6 +178,7 @@ async def get_image_file(
             else:
                 # image
                 if not os.path.exists(file_location):
+                    # image is missing. testing?
                     APP_ENV = os.getenv("APP_ENV", "production")
                     if APP_ENV == "development":
                         file_location = "test.jpg"
@@ -193,7 +194,24 @@ async def get_image_file(
                         img_transposed.thumbnail(
                             IMAGESIZES[size], Image.Resampling.LANCZOS
                         )
-                        img_transposed.save(thumb_location)
+                        if file_location == "test.jpg":
+                            width, height = img_transposed.size
+                            draw = ImageDraw.Draw(img_transposed)
+                            font = ImageFont.truetype(
+                                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                                size=75,
+                            )
+                            draw.text(
+                                (width / 2, height / 2),
+                                f"{image_id}",
+                                anchor="mm",
+                                fill="white",
+                                font=font,
+                            )
+
+                        img_transposed.save(
+                            thumb_location, "JPEG", progressive=True, optimize=True
+                        )
         return FileResponse(thumb_location)
     if size == "o":
         return FileResponse(file_location)

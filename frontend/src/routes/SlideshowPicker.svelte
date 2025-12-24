@@ -17,10 +17,6 @@
 	let selectedSlideshow: Slideshow | undefined = $state();
 	let searchText = $state('');
 
-	function handleSelect(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
-		throw new Error('Function not implemented.');
-	}
-
 	function handleAddNew(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
 		selectedSlideshow = {
 			id: 0,
@@ -144,7 +140,9 @@
 				{/if}
 				{#each $currentItems as slideshow}
 					<div class="list-group-item">
-						<button class="btn btn-outline-primary" onclick={handleSelect}> Select </button>
+						<button class="btn btn-outline-primary" onclick={() => (selectedSlideshow = slideshow)}>
+							Select
+						</button>
 						{slideshow.title}
 					</div>
 				{/each}
