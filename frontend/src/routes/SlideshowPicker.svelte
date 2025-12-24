@@ -6,6 +6,7 @@
 	import ModalTitle from '$lib/components/modal/ModalTitle.svelte';
 	import { photoPath, type Photo } from '$lib/models/photo';
 	import type { Slideshow } from '$lib/models/slideshow';
+	import { fetchApi } from '$lib/stores/common-store';
 	import { saveSlideshow, slideshowStore } from '$lib/stores/slideshow-store';
 	interface IProps {
 		photos: Photo[];
@@ -24,8 +25,7 @@
 		selectedSlideshow = {
 			id: 0,
 			title: searchText,
-			length: 0,
-			slides: photos
+			slide_count: 0
 		};
 	}
 
@@ -33,6 +33,14 @@
 		onclose?.();
 	}
 
+	async function getSlides(slideshowId: number): Promise<Photo[]> {
+		const url = `/api/slideshows/${slideshowId}/slides`;
+		const response = await fetchApi(url, { headers: { accept: 'application/json' } });
+		if (response) {
+			return JSON.parse(response);
+		}
+		return [];
+	}
 	async function handleAppend(
 		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
 	) {
@@ -41,9 +49,8 @@
 			if (!selectedSlideshow) {
 				throw new Error('please select a slideshow');
 			}
-			const photo_ids = Array.from(
-				new Set([...selectedSlideshow!.slides, ...photos].map((p) => p.id))
-			);
+			const slides = await getSlides(selectedSlideshow.id);
+			const photo_ids = Array.from(new Set([...slides, ...photos].map((p) => p.id)));
 
 			await saveSlideshow({
 				id: selectedSlideshow.id,
@@ -67,8 +74,9 @@
 			if (!selectedSlideshow) {
 				throw new Error('please select a slideshow');
 			}
+			const slides = await getSlides(selectedSlideshow.id);
 			const photo_ids = new Set(
-				[...selectedSlideshow.slides, ...photos]
+				[...slides, ...photos]
 					.toSorted((a: Photo, b: Photo) => {
 						if (a.date_taken < b.date_taken) {
 							return -1;
@@ -112,10 +120,18 @@
 		</div>
 		{#if selectedSlideshow}
 			<div class="mb-3">
-				<strong>{selectedSlideshow.title}</strong>
-				<div>
-					current length:
-					{selectedSlideshow.length}
+				Slideshow: <button
+					class="btn btn-outline-secondary"
+					onclick={() => (selectedSlideshow = undefined)}
+				>
+					Change
+				</button>
+				<div class="card">
+					<strong>{selectedSlideshow.title}</strong>
+					<div>
+						current length:
+						{selectedSlideshow.slide_count}
+					</div>
 				</div>
 			</div>
 		{:else}

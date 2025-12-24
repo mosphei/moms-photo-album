@@ -3,8 +3,7 @@ import type { Photo } from './photo';
 export interface Slideshow {
 	id: number;
 	title: string;
-	length: number;
-	slides: Photo[];
+	slide_count: number;
 }
 
 export interface SlideshowUpdate {

@@ -2,7 +2,6 @@
 	import { resolve } from '$app/paths';
 	import { errorAlert } from '$lib/alerts';
 	import PageTitle from '$lib/components/PageTitle.svelte';
-	import { PaginatedStore } from '$lib/models/paginated-store';
 	import type { Slideshow } from '$lib/models/slideshow';
 	import { slideshowStore } from '$lib/stores/slideshow-store';
 	import { onMount } from 'svelte';
@@ -54,8 +53,8 @@
 		</div>
 
 		<p class="mb-1">
-			{slideshow.slides.length}
-			slide{slideshow.slides.length === 1 ? '' : 's'}
+			{slideshow.slide_count}
+			slide{slideshow.slide_count === 1 ? '' : 's'}
 		</p>
 	</div>
 {/snippet}
@@ -65,7 +64,16 @@
 		<div class="list-group-item">No items found.</div>
 	{/if}
 	{#each $currentItems as slideshow}
-		<div class="list-group-item"></div>
+		<a
+			class="list-group-item list-group-item-action"
+			href={resolve('/slideshows/[slug]', { slug: slideshow.id.toString() })}
+			title="edit"
+		>
+			{slideshow.title}
+			<span class="badge text-bg-primary rounded-pill">
+				{slideshow.slide_count}
+			</span>
+		</a>
 	{/each}
 	<!-- add slideshow form -->
 	{#if showAddform}
@@ -88,10 +96,12 @@
 			</div>
 		</form>
 	{:else}
-		<div class="list-group-item">
-			<button class="btn btn-primary" type="button" onclick={() => (showAddform = true)}
-				>Add New Slideshow</button
-			>
-		</div>
+		<button
+			class="list-group-item list-group-item-action"
+			type="button"
+			onclick={() => (showAddform = true)}
+		>
+			Add New Slideshow
+		</button>
 	{/if}
 </div>

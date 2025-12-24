@@ -111,9 +111,9 @@ class TokenData(BaseModel):
 
 class SlideshowSchema(BaseModel):
     id: int
-    title: str
     user_id: int
-    slide_count: Optional[int] = None
+    title: str
+    slide_count: int
 
 
 class SlideshowCreate(BaseModel):

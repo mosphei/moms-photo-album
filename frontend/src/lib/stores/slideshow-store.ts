@@ -4,14 +4,22 @@ import type { Slideshow, SlideshowUpdate } from '$lib/models/slideshow';
 import { dateTimeReviver } from '$lib/utils';
 import { fetchApi } from './common-store';
 
+interface ICriteria {
+	q?: string;
+}
+
 async function slideshowFetcher(
 	offset: number,
-	limit: number
+	limit: number,
+	criteria: ICriteria | undefined
 ): Promise<PaginatedResults<Slideshow>> {
 	const urlParams = new URLSearchParams({
 		offset: `${offset}`,
 		limit: `${limit}`
 	});
+	if (criteria?.q) {
+		urlParams.append('q', criteria.q);
+	}
 	const url = `/api/slideshows/?${urlParams.toString()}`;
 	console.log(`url:${url}`);
 	const response = await fetchApi(url, {
@@ -31,7 +39,7 @@ async function slideshowFetcher(
 		};
 	}
 }
-export const slideshowStore = new PaginatedStore<Slideshow>(slideshowFetcher);
+export const slideshowStore = new PaginatedStore<Slideshow, ICriteria>(slideshowFetcher);
 slideshowStore.setNumPerPage(100);
 slideshowStore.setCurrentPage(1);
 

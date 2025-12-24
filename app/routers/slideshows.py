@@ -28,17 +28,22 @@ async def get_slideshow_list(
         .offset(offset)
         .limit(limit)
     )
+    print("=============================================")
+    print(query)
     slideshow_list = db.execute(query).scalars().all()
-    print(slideshow_list)
+    print(slideshow_list[0])
     count_stmt = (
         select(func.count())
-        .select_from(Slideshow)
-        .where(Slideshow.user_id == current_user.id)
+        .select_from(SlideshowCountModel)
+        .where(SlideshowCountModel.user_id == current_user.id)
     )
     total_count = db.execute(count_stmt).scalar()
-    return PaginatedResults[SlideshowSchema](
-        items=slideshow_list, total_count=total_count, offset=offset, limit=limit
-    )
+    return {
+        "offset": offset,
+        "limit": limit,
+        "total_count": total_count,
+        "items": slideshow_list,
+    }
 
 
 def save_slides(slideshow_id: int, photo_ids: List[int], session: Session):
@@ -96,3 +101,47 @@ async def update_slideshow(
         select(SlideshowCountModel).where(SlideshowCountModel.id == slideshow_id)
     ).scalar()
     return db_slideshow
+
+
+@router.get("/{slideshow_id}", response_model=SlideshowSchema)
+async def get_slideshow(
+    slideshow_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    db_slideshow = db.execute(
+        select(SlideshowCountModel).where(
+            and_(
+                SlideshowCountModel.id == slideshow_id,
+                SlideshowCountModel.user_id == current_user.id,
+            )
+        )
+    ).scalar()
+    if db_slideshow is None:
+        raise HTTPException(status_code=404, detail="no such slideshow")
+    return db_slideshow
+
+
+@router.get("/{slideshow_id}/slides", response_model=List[PhotoSchema])
+async def get_slideshow_slides(
+    slideshow_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    db_slides = (
+        db.execute(
+            select(PhotoModel)
+            .join(
+                Slide,
+                and_(
+                    PhotoModel.id == Slide.photo_id, Slide.slideshow_id == slideshow_id
+                ),
+            )
+            .order_by(Slide.order, PhotoModel.date_taken, PhotoModel.id)
+        )
+        .scalars()
+        .all()
+    )
+    if db_slides is None:
+        raise HTTPException(status_code=404, detail="no such slideshow")
+    return db_slides
