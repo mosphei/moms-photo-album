@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.routers import slideshows
+
 from .database import create_all_tables
 from .routers import admin, images, people, search, upload, users, tests
 
@@ -13,8 +15,9 @@ app = FastAPI()
 app.include_router(admin.router)
 app.include_router(images.router)
 app.include_router(people.router)
-app.include_router(search.router) 
+app.include_router(search.router)
 app.include_router(upload.router)
+app.include_router(slideshows.router)
 app.include_router(users.router)
 app.include_router(tests.router)
 

@@ -112,9 +112,16 @@ class TokenData(BaseModel):
 class SlideshowSchema(BaseModel):
     id: int
     title: str
-    user: UserSchema
-    length: int
-    slides: List[PhotoSchema]
+    user_id: int
+    slide_count: Optional[int] = None
+
+
 class SlideshowCreate(BaseModel):
     title: str
-    slides: List[PhotoSchema] = []
+    slides: Optional[List[int]] = None
+
+
+class SlideshowUpdate(BaseModel):
+    id: int
+    title: str
+    slides: List[int]

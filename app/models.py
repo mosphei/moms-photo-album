@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Table,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import (
     relationship,
@@ -157,16 +158,32 @@ class SearchPhotoModel(Base):
     date_seen = mapped_column(DateTime, default=datetime.utcnow)
 
 
-class SlideShow(Base):
+class Slideshow(Base):
     __tablename__ = "slideshows"
     id = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = mapped_column(Integer, ForeignKey("users.id"))
     title = mapped_column(String(255), nullable=False)
+    UniqueConstraint("user_id", "title", "ix_slideshow_title")
 
 
-photo_slideshow_association = Table(
-    "photo_slideshow_association",
-    Base.metadata,
-    Column("photo_id", Integer, ForeignKey("photos.id"), primary_key=True),
-    Column("slideshow_id", Integer, ForeignKey("slideshows.id"), primary_key=True),
-)
+class Slide(Base):
+    __tablename__ = "slideshow_photo_association"
+    slideshow_id = mapped_column(Integer, ForeignKey("slideshows.id"), primary_key=True)
+    photo_id = mapped_column(Integer, ForeignKey("photos.id"), primary_key=True)
+    order = mapped_column(Integer, nullable=False)
+
+
+class SlideshowCountModel(Base):
+    """
+    CREATE VIEW slideshow_photo_counts AS
+    SELECT id, user_id, title, count(*) as slide_count
+    FROM slideshows
+    LEFT JOIN slideshow_photo_association ON id = slideshow_photo_association.slideshow_id
+    GROUP BY id, user_id, title
+    """
+
+    __tablename__ = "slideshow_photo_counts"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String(255))
+    slide_count: Mapped[int] = mapped_column(Integer)
