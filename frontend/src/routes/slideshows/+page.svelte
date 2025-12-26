@@ -63,7 +63,7 @@
 	{#if $totalCount !== undefined && $totalCount < 1}
 		<div class="list-group-item">No items found.</div>
 	{/if}
-	{#each $currentItems as slideshow}
+	{#each $currentItems as slideshow (slideshow.id)}
 		<a
 			class="list-group-item list-group-item-action"
 			href={resolve('/slideshows/[slug]', { slug: slideshow.id.toString() })}

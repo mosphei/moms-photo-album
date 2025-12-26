@@ -182,7 +182,7 @@
 </script>
 
 <div class="d-flex flex-wrap mb-2" style="width: 100%;--rotation:{rotation}deg;">
-	{#each photos as photo}
+	{#each photos as photo (photo.id)}
 		<div style="margin:4px; width: 200px; height:200px">
 			<img
 				src={photoPath('t', photo)}
@@ -253,7 +253,7 @@
 				/>
 			</div>
 			{#if fieldsToUpdate.includes('people')}
-				{#each people as p}
+				{#each people as p (p.id)}
 					<div class="chip">
 						{p.name}
 						<button class="" onclick={() => removePerson(p)} aria-label="remove" type="button">
@@ -278,7 +278,7 @@
 					/>
 					{#if searchText.length}
 						<ul class="dropdown-menu show">
-							{#each searchResult as p}
+							{#each searchResult as p (p.id)}
 								<li>
 									<button class="dropdown-item" type="button" onclick={() => addPerson(p)}>
 										{p.name}

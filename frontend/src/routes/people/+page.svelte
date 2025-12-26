@@ -175,7 +175,7 @@
 	{#if $currentItems.length == 0}
 		<div class="list-group-item">No people found.</div>
 	{/if}
-	{#each $currentItems as person}
+	{#each $currentItems as person (person.id)}
 		{#if editPerson?.id == person.id}
 			{@render editPersonListItem(person)}
 		{:else}

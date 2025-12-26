@@ -122,7 +122,7 @@
 	</ModalTitle>
 	<ModalBody>
 		<div class="d-flex flex-wrap mb-2" style="width: 100%;">
-			{#each photos as photo}
+			{#each photos as photo (photo.id)}
 				<div style="margin:4px; width: 200px; height:200px">
 					<img
 						src={photoPath('t', photo)}
@@ -156,7 +156,7 @@
 				{#if $currentItems.length < 1}
 					<div class="list-group-item">No items found</div>
 				{/if}
-				{#each $currentItems as slideshow}
+				{#each $currentItems as slideshow (slideshow.id)}
 					<div class="list-group-item">
 						<button class="btn btn-outline-primary" onclick={() => (selectedSlideshow = slideshow)}>
 							Select

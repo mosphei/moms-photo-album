@@ -157,7 +157,7 @@
 	{/if}
 	{#if filterPersons.length}
 		<div class="col-auto">
-			{#each filterPersons as p}
+			{#each filterPersons as p (p.id)}
 				<button
 					class="btn btn-outline-secondary"
 					title="remove"
@@ -241,7 +241,7 @@
 				<div class="mb-3" style="position:relative">
 					{#if filterPersons.length}
 						<div>
-							{#each filterPersons as p}
+							{#each filterPersons as p (p.id)}
 								<button
 									class="btn btn-outline-secondary"
 									title="remove"

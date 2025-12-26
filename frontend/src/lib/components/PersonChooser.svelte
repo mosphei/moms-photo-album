@@ -111,7 +111,7 @@
 		tabindex="-1"
 		transition:slide
 	>
-		{#each personSearchResult as p, i}
+		{#each personSearchResult as p, i (p.id)}
 			<button
 				bind:this={buttonElements[i]}
 				class="list-group-item"

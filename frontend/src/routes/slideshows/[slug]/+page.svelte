@@ -167,7 +167,7 @@
 			</a>
 		</div>
 	{/snippet}
-	{#each slides as slide}
+	{#each slides as slide (slide.id)}
 		{@render thumbnail(slide)}
 	{/each}
 </div>

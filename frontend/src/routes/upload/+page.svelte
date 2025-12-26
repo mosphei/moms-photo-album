@@ -91,7 +91,7 @@
 <h1>Upload</h1>
 <p>Select one or more image files</p>
 <div class="d-sm-flex flex-wrap">
-	{#each fileList as f}
+	{#each fileList as f (f.filename)}
 		<UploadCard fileEntry={f} />
 	{/each}
 </div>

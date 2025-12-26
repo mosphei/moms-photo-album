@@ -193,7 +193,7 @@
 	{#if $currentItems.length == 0}
 		<div class="alert alert-info m-3">No photos found.</div>
 	{/if}
-	{#each $currentItems as photo}
+	{#each $currentItems as photo (photo.id)}
 		<div class="thumb-container" style="width:{thumbWidth}px">
 			<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
 			<label style="position:absolute;top:0;left:0;padding:1rem" for="select_{photo.id}">
