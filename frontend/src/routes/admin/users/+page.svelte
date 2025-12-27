@@ -53,7 +53,7 @@
 </div>
 
 <div class="list-group" style="width: 25rem;">
-	{#each $currentItems as user}
+	{#each $currentItems as user (user.id)}
 		{@const editing = user.id == selectedUserId}
 		<div class={{ 'list-group-item': true, editing }}>
 			<div class="d-flex justify-content-between w-100">

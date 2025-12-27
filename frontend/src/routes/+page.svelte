@@ -7,10 +7,13 @@
 	import PhotoViewer from './PhotoViewer.svelte';
 	import PhotoEditor from './PhotoEditor.svelte';
 	import { tick } from 'svelte';
-	import Modal from '$lib/components/Modal.svelte';
+	import Modal from '$lib/components/modal/Modal.svelte';
 	import FilterComponent from './FilterComponent.svelte';
 	import { pushState, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
+	import SlideshowPicker from './SlideshowPicker.svelte';
+	import ModalTitle from '$lib/components/modal/ModalTitle.svelte';
+	import ModalContent from '$lib/components/modal/ModalContent.svelte';
 
 	let { currentPage, numPerPage, currentItems, totalCount, lastPage } = photoStore;
 	let selectedPhotos: number[] = $state([]);
@@ -163,6 +166,18 @@
 			getAutoItemsCount();
 		}
 	});
+
+	let slideshowDialog: HTMLDialogElement;
+	function handleAddSlideshow(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		photosToEdit = $currentItems.filter((p) => selectedPhotos.includes(p.id));
+		slideshowDialog!.showModal();
+	}
+
+	function handleCloseSlideshowPicker(): void {
+		throw new Error('Function not implemented.');
+	}
 </script>
 
 <svelte:head><title>PhotoDB - Moms Photo Album</title></svelte:head>
@@ -178,7 +193,7 @@
 	{#if $currentItems.length == 0}
 		<div class="alert alert-info m-3">No photos found.</div>
 	{/if}
-	{#each $currentItems as photo}
+	{#each $currentItems as photo (photo.id)}
 		<div class="thumb-container" style="width:{thumbWidth}px">
 			<Thumbnail {photo} onclick={(e) => handleThumbnailClick(e, photo)} />
 			<label style="position:absolute;top:0;left:0;padding:1rem" for="select_{photo.id}">
@@ -209,6 +224,10 @@
 				Edit
 				{selectedPhotos.length}
 			</button>
+
+			<button class="btn btn-primary" onclick={handleAddSlideshow} type="button"
+				>Add to slideshow</button
+			>
 			<button class="btn btn-secondary" onclick={() => (selectedPhotos = [])} type="button">
 				Deselect
 			</button>
@@ -237,10 +256,14 @@
 	{/snippet}
 	<PhotoEditor photos={photosToEdit} onsave={handleOnSave} oncancel={() => editDialog?.close()} />
 </Modal>
+<dialog bind:this={slideshowDialog} closedBy="closerequest">
+	<SlideshowPicker photos={photosToEdit} onclose={() => slideshowDialog.close()} />
+</dialog>
 <DebugPanel value={{ state: page.state, currentPage: $currentPage, photos: $currentItems }} />
+
 <style>
 	.thumb-container {
-		position:relative; 
-		padding:5px;
+		position: relative;
+		padding: 5px;
 	}
 </style>

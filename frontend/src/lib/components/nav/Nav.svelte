@@ -51,6 +51,9 @@
 				<li class="nav-item">
 					<a href={resolve('/people')} class="nav-link">People</a>
 				</li>
+				<li class="nav-item">
+					<a href={resolve('/slideshows/')} class="nav-link">Slideshows</a>
+				</li>
 				{#if $me?.admin}
 					<NavDropdown text="Admin">
 						<a class="dropdown-item" href={resolve('/admin/missing/')}>Scan Missing</a>

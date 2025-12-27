@@ -36,7 +36,7 @@
 	to {($currentPage - 1) * $numPerPage + $numPerPage}
 	of {$totalCount}
 </div>
-{#each $currentItems as item}
+{#each $currentItems as item (item.id)}
 	<div class="card mb-2">
 		<div class="card-body">
 			<h5 class="card-title">

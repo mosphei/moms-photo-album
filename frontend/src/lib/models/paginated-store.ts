@@ -1,19 +1,24 @@
 import { derived, get, writable, type Writable } from 'svelte/store';
 import type { PaginatedResults } from './paginated-results';
 
-export class PaginatedStore<T> {
+export class PaginatedStore<TData = any, TCriteria = any> {
 	private current_page = writable(1);
 	private limit = writable(10);
 	private offset = derived([this.current_page, this.limit], ([P, L]) => {
 		return (P - 1) * L;
 	});
-	private items = writable([] as T[]);
+	private items = writable([] as TData[]);
 	public currentItems = derived(this.items, (ITEMS) => ITEMS);
 	private total_items = writable(-1);
 	public totalCount = derived(this.total_items, (TI) => (TI < 0 ? undefined : TI));
-	fetcher: (offset: number, limit: number) => Promise<PaginatedResults<T>>;
+	public criteria: TCriteria | undefined = undefined;
+	fetcher: (
+		offset: number,
+		limit: number,
+		criteria: TCriteria | undefined
+	) => Promise<PaginatedResults<TData>>;
 	async refresh() {
-		const paginated = await this.fetcher(get(this.offset), get(this.limit));
+		const paginated = await this.fetcher(get(this.offset), get(this.limit), this.criteria);
 		this.items.set(paginated.items);
 		if (paginated.total_count !== undefined) {
 			this.total_items.set(paginated.total_count);
