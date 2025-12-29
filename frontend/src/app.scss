@@ -11,3 +11,19 @@ $bootstrap-icons-font-dir: 'bootstrap-icons/font/fonts';
 
 // Import the Sass files as usual
 @import 'bootstrap-icons/font/bootstrap-icons';
+
+#action-buttons {
+	position: sticky;
+	bottom: 1rem;
+	display: flex;
+	margin: 0 10%;
+	width: 80%;
+	pointer-events: none;
+	justify-content: center;
+	gap: 1rem;
+}
+#action-buttons a,
+#action-buttons button,
+#action-buttons input {
+	pointer-events: all;
+}

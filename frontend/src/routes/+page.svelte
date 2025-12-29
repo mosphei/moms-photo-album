@@ -1,12 +1,12 @@
 <script lang="ts">
 	import DebugPanel from '$lib/components/DebugPanel.svelte';
 	import type { Photo } from '$lib/models/photo';
-	import { photoStore, photoCriteria } from '$lib/stores/photo-store';
+	import { photoStore } from '$lib/stores/photo-store';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import Thumbnail from './Thumbnail.svelte';
 	import PhotoViewer from './PhotoViewer.svelte';
 	import PhotoEditor from './PhotoEditor.svelte';
-	import { tick } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import Modal from '$lib/components/modal/Modal.svelte';
 	import FilterComponent from './FilterComponent.svelte';
 	import { pushState, replaceState } from '$app/navigation';
@@ -178,11 +178,15 @@
 	function handleCloseSlideshowPicker(): void {
 		throw new Error('Function not implemented.');
 	}
+
+	onMount(() => {
+		photoStore.refresh();
+	});
 </script>
 
 <svelte:head><title>PhotoDB - Moms Photo Album</title></svelte:head>
 <svelte:window bind:innerWidth bind:innerHeight />
-<FilterComponent criteria={photoCriteria} />
+<FilterComponent criteria={photoStore.criteria} />
 
 <div>
 	{($currentPage - 1) * $numPerPage + 1}

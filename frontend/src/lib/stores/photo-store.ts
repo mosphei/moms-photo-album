@@ -14,17 +14,22 @@ export interface IPhotoCriteria {
 	before?: Date;
 	sortBy: 'date_taken' | 'date_uploaded' | 'date_updated';
 	sortDescending: boolean;
-}
+} /*
 export const photoCriteria = writable({
 	sortBy: 'date_taken',
 	sortDescending: false
-} as IPhotoCriteria);
-export const photoStore = new PaginatedStore<Photo>(async (offset: number, limit: number) => {
+} as IPhotoCriteria);*/
+const emptyResult: PaginatedResults<Photo> = {
+	items: [],
+	offset: 0,
+	limit: 0,
+	total_count: 0
+};
+async function fetchPhotos(offset: number, limit: number, criteria: IPhotoCriteria | undefined) {
 	const urlParams = new URLSearchParams({
 		offset: `${offset}`,
 		limit: `${limit}`
 	});
-	const criteria = get(photoCriteria);
 	if (criteria) {
 		if (criteria.q && criteria.q.length > 2) {
 			urlParams.append('q', criteria.q);
@@ -51,7 +56,9 @@ export const photoStore = new PaginatedStore<Photo>(async (offset: number, limit
 		const response = await fetchApi(url, {
 			headers: { accept: 'application/json' }
 		});
-		const result: PaginatedResults<Photo> = await JSON.parse(response || '[]', dateTimeReviver);
+		const result: PaginatedResults<Photo> = response
+			? JSON.parse(response, dateTimeReviver)
+			: emptyResult;
 		console.log(`getPhotos`, result);
 		return result;
 	} catch (error) {
@@ -63,9 +70,10 @@ export const photoStore = new PaginatedStore<Photo>(async (offset: number, limit
 		limit,
 		total_count: 0
 	};
-});
+}
+export const photoStore = new PaginatedStore<Photo, IPhotoCriteria>(fetchPhotos);
 // go back to page 1 if criteria change
-photoCriteria.subscribe((C) => {
+/*photoCriteria.subscribe((C) => {
 	console.log(C, get(photoStore.currentPage));
 	if (get(photoStore.currentPage) != 1) {
 		console.log('setting page to 1');
@@ -75,7 +83,7 @@ photoCriteria.subscribe((C) => {
 	} else {
 		photoStore.refresh();
 	}
-});
+}); */
 
 export async function savePhoto(id: number, photo: Partial<Photo>) {
 	console.log('saving photo', photo);

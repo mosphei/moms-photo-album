@@ -1,25 +1,58 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { errorAlert } from '$lib/alerts';
+	import { errorAlert, progressAlert } from '$lib/alerts';
 	import PageTitle from '$lib/components/PageTitle.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 	import type { Slideshow } from '$lib/models/slideshow';
-	import { slideshowStore } from '$lib/stores/slideshow-store';
+	import { saveSlideshow, slideshowStore } from '$lib/stores/slideshow-store';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 
 	let { currentPage, lastPage, numPerPage, totalCount, currentItems } = slideshowStore;
+	let page = $state($currentPage);
+	$effect(() => {
+		slideshowStore.setCurrentPage(page);
+	});
+	// other direction too
+	currentPage.subscribe((pp) => {
+		page = pp;
+	});
+	function handleLimitChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
+		const x = parseInt(event.currentTarget.value);
+		slideshowStore.setNumPerPage(x);
+	}
+
+	let showAddform = $state(false);
+	async function handleAddNew(
+		event: SubmitEvent & { currentTarget: EventTarget & HTMLFormElement }
+	) {
+		event.preventDefault();
+		const msg = progressAlert('adding new slideshow');
+		try {
+			const vals = new FormData(event.currentTarget);
+			const title = vals.get('title') as string;
+			if (title === '') {
+				throw new Error('title is required');
+			}
+			saveSlideshow({
+				id: 0,
+				title: title,
+				slides: []
+			});
+		} catch (error) {
+			errorAlert('unable to ad slideshow ', error, 15000);
+		} finally {
+			msg.dismiss();
+		}
+	}
+
 	onMount(async () => {
 		try {
-			await slideshowStore.setCurrentPage(1);
+			await slideshowStore.refresh();
 		} catch (error) {
 			errorAlert('unable to get slideshows', error, 15000);
 		}
 	});
-
-	let showAddform = $state(false);
-	function handleAddNew(event: SubmitEvent & { currentTarget: EventTarget & HTMLFormElement }) {
-		throw new Error('Function not implemented.');
-	}
 </script>
 
 <PageTitle title="Slideshows">
@@ -59,7 +92,7 @@
 	</div>
 {/snippet}
 
-<div class="list-group">
+<div class="list-group mb-3">
 	{#if $totalCount !== undefined && $totalCount < 1}
 		<div class="list-group-item">No items found.</div>
 	{/if}
@@ -104,4 +137,21 @@
 			Add New Slideshow
 		</button>
 	{/if}
+</div>
+
+<!-- footer -->
+<div style="clear: both;position:sticky;bottom:4px" class="row g-3">
+	<div class="col-auto">
+		<Pagination last={$lastPage} bind:page />
+	</div>
+	<div class="col-auto">
+		<div class="input-group">
+			<span class="input-group-text"> Show </span>
+			<select name="nmn" value={$numPerPage} onchange={handleLimitChange} class="form-select">
+				{#each [10, 20, 50, 100] as val}
+					<option>{val}</option>
+				{/each}
+			</select>
+		</div>
+	</div>
 </div>
