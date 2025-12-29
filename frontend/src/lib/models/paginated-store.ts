@@ -56,8 +56,8 @@ export class PaginatedStore<TData = any, TCriteria = any> {
 		const limit = get(this.limit);
 		const values = this.data.slice(offset, offset + limit);
 		const safeValues = values.filter((v) => v !== null);
-		if (safeValues.length == values.length) {
-			console.log('cached items');
+		if (values.length && safeValues.length == values.length) {
+			console.log(`cached items offset:${offset}`, safeValues);
 			this.items.set(safeValues);
 		} else {
 			await this.refresh();
@@ -108,6 +108,9 @@ export class PaginatedStore<TData = any, TCriteria = any> {
 	constructor(fetcher: typeof this.fetcher) {
 		this.fetcher = fetcher;
 		this.criteria.subscribe((C) => {
+			// invalidate cache
+			this.data = [];
+			// go back to page 1
 			this.setCurrentPage(1);
 		});
 	}
