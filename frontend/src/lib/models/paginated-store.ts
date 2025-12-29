@@ -18,7 +18,7 @@ export class PaginatedStore<TData = any, TCriteria = any> {
 		limit: number,
 		criteria: TCriteria | undefined
 	) => Promise<PaginatedResults<TData>>;
-	async fetchAndApply(offset: number, limit: number, criteria: TCriteria | undefined) {
+	private async fetchAndApply(offset: number, limit: number, criteria: TCriteria | undefined) {
 		const paginated = await this.fetcher(offset, limit, criteria);
 		if (paginated?.items) {
 			console.log(paginated);
@@ -91,6 +91,19 @@ export class PaginatedStore<TData = any, TCriteria = any> {
 			await this.fetchAndApply(i, get(this.limit), get(this.criteria));
 		}
 		return this.data[i];
+	}
+	async allItems(): Promise<TData[]> {
+		const limit = get(this.limit);
+		const crit = get(this.criteria);
+		for (let i = 0; i < this.data.length; i++) {
+			if (this.data[i] === null) {
+				await this.fetchAndApply(i, limit, crit);
+			}
+			if (this.data[i] === null) {
+				throw new Error('unable to fetch all items');
+			}
+		}
+		return this.data as TData[];
 	}
 	constructor(fetcher: typeof this.fetcher) {
 		this.fetcher = fetcher;

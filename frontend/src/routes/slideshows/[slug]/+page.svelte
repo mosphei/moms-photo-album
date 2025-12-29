@@ -15,6 +15,7 @@
 	import Pagination from '$lib/components/Pagination.svelte';
 	import { PaginatedStore } from '$lib/models/paginated-store';
 	import { errorAlert, progressAlert } from '$lib/alerts';
+	import { saveSlideshow } from '$lib/stores/slideshow-store';
 
 	let { data }: PageProps = $props();
 	let contentRef: HTMLDivElement | undefined = $state();
@@ -160,6 +161,54 @@
 			play();
 		}
 	}
+	let selectedSlideIds: number[] = $state([]);
+	function handleSelectSlide(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLInputElement }
+	) {
+		if (event.shiftKey) {
+			if (selectedSlideIds.length > 0) {
+				const last_chosen = selectedSlideIds[selectedSlideIds.length - 1];
+				const idx = $currentItems.findIndex((p) => p.id === last_chosen);
+				const currentId = parseInt(event.currentTarget.value);
+				const currentIdx = $currentItems.findIndex((p) => p.id === currentId);
+				const [first, last] = currentIdx > idx ? [idx, currentIdx] : [currentIdx, idx];
+				selectedSlideIds = Array.from(
+					new Set([
+						...selectedSlideIds,
+						...$currentItems.filter((itm, i) => i >= first && i <= last).map((itm) => itm.id)
+					])
+				);
+			}
+		}
+	}
+	async function handleRemoveSlides(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		const msg = progressAlert('saving...');
+		try {
+			const oldSlideList: Photo[] = await slideStore.allItems();
+			const newSlideList = oldSlideList
+				.map((p) => p.id)
+				.filter((id) => !selectedSlideIds.includes(id));
+			if (!slideshow?.id) {
+				throw new Error('unable to get slideshow id');
+			}
+			if (!slideshow?.title) {
+				throw new Error('unable to get slideshow title');
+			}
+			await saveSlideshow({
+				id: slideshow.id,
+				title: slideshow.title,
+				slides: newSlideList
+			});
+			slideStore.refresh();
+		} catch (error) {
+			errorAlert('unable to save slideshow', error, 1500);
+		} finally {
+			msg.dismiss();
+		}
+	}
+
 	onMount(async () => {
 		const msg = progressAlert('loading slides...');
 		try {
@@ -174,12 +223,25 @@
 
 <svelte:window onkeydown={handleKeydown} />
 <PageTitle {title}>
-	<h1>
-		Slideshow {title}
-		<small
-			><button onclick={play} type="button" class="btn btn-outline-primary"> Play </button></small
-		>
-	</h1>
+	<div class="d-flex">
+		<h1>
+			Slideshow {title}
+		</h1>
+		<div style="flex:1"></div>
+		<div class="d-flex gap-2 small" style="height: auto;">
+			<button onclick={play} type="button" class="btn btn-outline-primary"> Play </button>
+			<div class="form-check form-switch">
+				<input
+					class="form-check-input"
+					type="checkbox"
+					role="switch"
+					id="switchShuffle"
+					bind:checked={shuffle}
+				/>
+				<label class="form-check-label" for="switchShuffle">Shuffle</label>
+			</div>
+		</div>
+	</div>
 </PageTitle>
 
 <div class="d-flex flex-wrap justify-space-around">
@@ -196,6 +258,15 @@
 					{/if}
 				</section>
 			</a>
+			<label style="position:absolute;top:0;left:0;padding:1rem" for="select_{photo.id}">
+				<input
+					type="checkbox"
+					id="select_{photo.id}"
+					bind:group={selectedSlideIds}
+					value={photo.id}
+					onclick={handleSelectSlide}
+				/>
+			</label>
 		</div>
 	{/snippet}
 	{#each $currentItems as slide, idx (slide.id)}
@@ -249,6 +320,14 @@
 			</ModalBody>
 		</ModalContent>
 	</ModalDialog>
+{/if}
+{#if selectedSlideIds.length}
+	<div id="action-buttons">
+		<button class="btn btn-primary" onclick={handleRemoveSlides}>
+			Remove {selectedSlideIds.length}
+		</button>
+		<button class="btn btn-secondary" onclick={() => (selectedSlideIds = [])}> Deselect </button>
+	</div>
 {/if}
 
 <style>
