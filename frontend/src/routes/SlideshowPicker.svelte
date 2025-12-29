@@ -108,10 +108,9 @@
 			clearTimeout(debounce);
 		}
 		debounce = setTimeout(() => {
-			slideshowStore.criteria = {
+			slideshowStore.criteria.set({
 				q: searchText
-			};
-			slideshowStore.refresh();
+			});
 		}, 300);
 	}
 </script>

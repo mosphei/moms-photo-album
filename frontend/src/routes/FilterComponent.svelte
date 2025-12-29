@@ -6,11 +6,11 @@
 	import type { Writable } from 'svelte/store';
 	import { fly } from 'svelte/transition';
 
-	let { criteria }: { criteria: Writable<IPhotoCriteria> } = $props();
+	let { criteria }: { criteria: Writable<IPhotoCriteria | undefined> } = $props();
 	let showFilterMenu = $state(false);
-	let afterDate = $state($criteria.after ? $criteria.after.toLocaleDateString() : undefined);
-	let beforeDate = $state($criteria.before ? $criteria.before.toLocaleDateString() : undefined);
-	let q = $state($criteria.q);
+	let afterDate = $state($criteria?.after ? $criteria.after.toLocaleDateString() : undefined);
+	let beforeDate = $state($criteria?.before ? $criteria.before.toLocaleDateString() : undefined);
+	let q = $state($criteria?.q);
 	let searchTimerId: any = 0;
 	let busy = $state(false);
 
@@ -22,8 +22,9 @@
 		busy = true;
 		searchTimerId = setTimeout(() => {
 			criteria.update((C) => {
-				C.q = q;
-				return C;
+				const x: any = C || {};
+				x.q = q;
+				return x;
 			});
 		}, 300);
 	}
@@ -32,13 +33,15 @@
 		// console.log('handleAfterChange', newval);
 		if (newval) {
 			criteria.update((C) => {
-				C.after = new Date(newval);
-				return C;
+				const c: any = C || {};
+				c.after = new Date(newval);
+				return c;
 			});
 		} else {
 			criteria.update((C) => {
-				C.after = undefined;
-				return C;
+				const c: any = C || {};
+				c.after = undefined;
+				return c;
 			});
 		}
 	}
@@ -47,13 +50,15 @@
 		console.log('handleBeforeChange', newval);
 		if (newval) {
 			criteria.update((C) => {
-				C.before = new Date(newval);
-				return C;
+				const c: any = C || {};
+				c.before = new Date(newval);
+				return c;
 			});
 		} else {
 			criteria.update((C) => {
-				C.before = undefined;
-				return C;
+				const c: any = C || {};
+				c.before = undefined;
+				return c;
 			});
 		}
 	}
@@ -61,15 +66,17 @@
 	function addFilterPerson(person: Person) {
 		filterPersons = Array.from(new Set([...filterPersons, person]));
 		criteria.update((C) => {
-			C.person_ids = filterPersons.map((p) => p.id);
-			return C;
+			const c: any = C || {};
+			c.person_ids = filterPersons.map((p) => p.id);
+			return c;
 		});
 	}
 	function removeFilterPerson(person: Person) {
 		filterPersons = filterPersons.filter((p) => p.id !== person.id);
 		criteria.update((C) => {
-			C.person_ids = filterPersons.map((p) => p.id);
-			return C;
+			const c: any = C || {};
+			c.person_ids = filterPersons.map((p) => p.id);
+			return c;
 		});
 	}
 
@@ -106,12 +113,15 @@
 		// default sort
 		return 'Oldest';
 	}
-	let sortInput = $state(getInitialSort($criteria.sortBy, $criteria.sortDescending));
+	let sortInput = $state(
+		getInitialSort($criteria?.sortBy || 'date_taken', $criteria?.sortDescending || false)
+	);
 
 	function handleSortChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
 		const newval = event.currentTarget.value as (typeof sort_options)[number];
 		// console.log('handleSortChange', newval);
-		criteria.update((C) => {
+		criteria.update((oldval) => {
+			const C: any = oldval || {};
 			switch (newval) {
 				case 'Oldest':
 					C.sortBy = 'date_taken';
@@ -147,7 +157,7 @@
 	<div class="col-auto">
 		<button class="btn btn-primary" onclick={() => (showFilterMenu = true)}> Filter </button>
 	</div>
-	{#if $criteria.after}
+	{#if $criteria?.after}
 		<div class="col-auto">
 			<button class="btn btn-outline-secondary">
 				After {$criteria.after.toLocaleDateString()}

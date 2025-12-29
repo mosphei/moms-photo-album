@@ -8,20 +8,10 @@
 
 	let { currentPage, numPerPage, currentItems, totalCount, lastPage } = peopleStore;
 	let page = $state($currentPage);
-	let last: number | undefined = $state(undefined);
 	let q = $state($peopleCriteria.q);
 	let sortDescending = $state(false);
 	// for editing person
 	let editPerson: Person | undefined = $state();
-
-	function setLastPage(total_count: number | null, limit: number) {
-		if (total_count && limit > 0) {
-			last = Math.ceil(total_count / limit);
-			if (page > last) {
-				page = last;
-			}
-		}
-	}
 
 	function handleLimitChange(event: Event & { currentTarget: EventTarget & HTMLSelectElement }) {
 		const x = parseInt(event.currentTarget.value);
@@ -53,6 +43,10 @@
 
 	$effect(() => {
 		peopleStore.setCurrentPage(page);
+	});
+	// other direction too
+	currentPage.subscribe((pp) => {
+		page = pp;
 	});
 
 	onMount(() => {
@@ -186,7 +180,7 @@
 <!-- footer -->
 <div style="clear: both;position:sticky;bottom:4px" class="row g-3">
 	<div class="col-auto">
-		<Pagination {last} bind:page />
+		<Pagination last={$lastPage} bind:page />
 	</div>
 	<div class="col-auto">
 		<div class="input-group">

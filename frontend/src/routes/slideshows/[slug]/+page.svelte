@@ -3,7 +3,7 @@
 	import { onMount, tick } from 'svelte';
 	import type { PageProps } from './$types';
 	import { fetchApi } from '$lib/stores/common-store';
-	import { dateTimeReviver } from '$lib/utils';
+	import { dateTimeReviver, shuffleInPlace } from '$lib/utils';
 	import type { Slideshow } from '$lib/models/slideshow';
 	import { photoPath, type Photo } from '$lib/models/photo';
 	import ModalContent from '$lib/components/modal/ModalContent.svelte';
@@ -12,13 +12,16 @@
 	import { onNavigate, pushState } from '$app/navigation';
 	import ModalDialog from '$lib/components/modal/ModalDialog.svelte';
 	import { fade } from 'svelte/transition';
+	import Pagination from '$lib/components/Pagination.svelte';
+	import { PaginatedStore } from '$lib/models/paginated-store';
+	import { errorAlert, progressAlert } from '$lib/alerts';
 
 	let { data }: PageProps = $props();
 	let contentRef: HTMLDivElement | undefined = $state();
 	$inspect(data);
 	let title = $state(`${data.id}`);
 	let slideshow: Slideshow | undefined = $state();
-	let slides: Photo[] = $state([]);
+
 	let duration = $state(5000);
 
 	page.state.showViewModal = false;
@@ -30,28 +33,42 @@
 		});
 	}
 
-	async function getSlides(id: number) {
+	const slideStore = new PaginatedStore<Photo>(async (x: number, y: number, z: any) => {
 		const url = `/api/slideshows/${data.id}/slides`;
 		const response = await fetchApi(url, { headers: { accept: 'application/json' } });
+		let photos: Photo[] = [];
 		if (response) {
-			slides = JSON.parse(response, dateTimeReviver);
+			photos = JSON.parse(response, dateTimeReviver);
 		}
-	}
-	let playList: Photo[] = $state([]);
-	let shuffle = $state(false);
+		return {
+			offset: 0,
+			limit: photos.length,
+			items: photos,
+			total_count: photos.length
+		};
+	});
+	let { currentItems, currentPage, totalCount, lastPage, numPerPage } = slideStore;
+	let pp = $state($currentPage);
+	// synch pp and currentPage;
 	$effect(() => {
-		if (slides.length) {
-			let slideIndices = Array.from({ length: slides.length }).map((v, i) => i);
+		slideStore.setCurrentPage(pp);
+	});
+	currentPage.subscribe((p) => (pp = p));
+
+	let playList: number[] = $state([]);
+	let shuffle = $state(true);
+	$effect(() => {
+		if ($totalCount) {
+			let slideIndices = Array.from({ length: $totalCount }).map((v, i) => i);
 			if (shuffle) {
-				slideIndices = slideIndices.toSorted((a, b) => Math.random() - 0.5);
+				shuffleInPlace(slideIndices);
 			}
-			playList = slideIndices.map((i) => slides[i]);
+			playList = slideIndices;
 		}
 	});
 	let currentIdx = $state(0);
 
-	function nextItem() {
-		console.log('nextItem', page.state.showViewModal);
+	async function nextItem() {
 		if (!page.state.showViewModal) {
 			stopTimer();
 		}
@@ -63,7 +80,10 @@
 		const nextIdx = currentIdx + 1;
 
 		// cache the next img
-		fetch(photoPath('l', playList[nextIdx]));
+		const nextPhoto = await slideStore.getItem(playList[nextIdx]);
+		if (nextPhoto) {
+			fetch(photoPath('l', nextPhoto));
+		}
 	}
 	function prevItem() {
 		if (currentIdx <= 0) {
@@ -112,7 +132,7 @@
 			slideshow = result;
 			title = result.title;
 		}
-		getSlides(data.id);
+		slideStore.setCurrentPage(1);
 	});
 
 	function handleKeydown(event: KeyboardEvent & { currentTarget: EventTarget & Window }) {
@@ -130,15 +150,26 @@
 
 	function handleThumbClick(
 		event: MouseEvent & { currentTarget: EventTarget & HTMLAnchorElement },
-		photo: Photo
+		slideIndex: number
 	) {
 		event.preventDefault();
-		const idx = playList.findIndex((s) => s.id == photo.id);
+		// might be shuffled?
+		const idx = playList.findIndex((s) => s == slideIndex);
 		if (idx >= 0) {
 			currentIdx = idx;
 			play();
 		}
 	}
+	onMount(async () => {
+		const msg = progressAlert('loading slides...');
+		try {
+			slideStore.refresh();
+		} catch (error) {
+			errorAlert('unable to load slides!', error, 15000);
+		} finally {
+			msg.dismiss();
+		}
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -152,9 +183,9 @@
 </PageTitle>
 
 <div class="d-flex flex-wrap justify-space-around">
-	{#snippet thumbnail(photo: Photo)}
+	{#snippet thumbnail(photo: Photo, idx: number)}
 		<div class="thumb-container">
-			<a class="card" href={photoPath('l', photo)} onclick={(e) => handleThumbClick(e, photo)}>
+			<a class="card" href={photoPath('l', photo)} onclick={(e) => handleThumbClick(e, idx)}>
 				<img alt={photo.filename} src={photoPath('t', photo)} />
 				<section>
 					<div>
@@ -167,44 +198,53 @@
 			</a>
 		</div>
 	{/snippet}
-	{#each slides as slide (slide.id)}
-		{@render thumbnail(slide)}
+	{#each $currentItems as slide, idx (slide.id)}
+		{@render thumbnail(slide, idx)}
 	{/each}
+</div>
+<div>
+	<Pagination bind:page={pp} last={$lastPage} />
 </div>
 {#if page.state.showViewModal}
 	<ModalDialog --background="black">
 		<ModalContent bind:contentRef>
 			<ModalBody>
-				{#each [playList[currentIdx]] as photo (currentIdx)}
-					<div style="width:100%" transition:fade={{ duration: 300 }}>
-						<div style="width:100%;position:relative;">
-							{#if photo.content_type?.startsWith('video')}
-								<!-- svelte-ignore a11y_media_has_caption -->
-								<video controls poster={photoPath('m', photo)} width="100%">
-									<source src={photoPath('o', photo)} type={photo.content_type} />
-								</video>
-							{:else}
-								<img
-									src={photoPath('m', photo)}
-									alt={photo.filename}
-									style="object-fit:contain;object-position:center;width:100%;max-height: 100vh;"
-								/>
-							{/if}
-							<div class="left">
-								<button aria-label="Previous" type="button" onclick={prevItem}>
-									<span></span>
-								</button>
+				{#each [playList[currentIdx]] as slideIndex (currentIdx)}
+					{#await slideStore.getItem(slideIndex)}
+						<div>loading...</div>
+					{:then photo}
+						{#if photo}
+							<div style="width:100%" transition:fade={{ duration: 300 }}>
+								<div style="width:100%;position:relative;">
+									{#if photo.content_type?.startsWith('video')}
+										<!-- svelte-ignore a11y_media_has_caption -->
+										<video controls poster={photoPath('m', photo)} width="100%" autoplay>
+											<source src={photoPath('o', photo)} type={photo.content_type} />
+										</video>
+									{:else}
+										<img
+											src={photoPath('m', photo)}
+											alt={photo.filename}
+											style="object-fit:contain;object-position:center;width:100%;max-height: 100vh;"
+										/>
+									{/if}
+									<div class="left">
+										<button aria-label="Previous" type="button" onclick={prevItem}>
+											<span></span>
+										</button>
+									</div>
+									<div class="right">
+										<button aria-label="Next" type="button" onclick={nextItem}>
+											<span></span>
+										</button>
+									</div>
+								</div>
+								<div>
+									{photo.description}
+								</div>
 							</div>
-							<div class="right">
-								<button aria-label="Next" type="button" onclick={nextItem}>
-									<span></span>
-								</button>
-							</div>
-						</div>
-						<div>
-							{photo.description}
-						</div>
-					</div>
+						{/if}
+					{/await}
 				{/each}
 			</ModalBody>
 		</ModalContent>

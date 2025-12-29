@@ -10,10 +10,12 @@ export async function fetchApi(url: string, opts = {}) {
 		if (!response.ok) {
 			if (response.status === 401) {
 				session.set(false);
+				return undefined;
+			} else {
+				const result = await response.text();
+				console.log('Error getting data: ', result, response);
+				throw result;
 			}
-			const result = await response.text();
-			console.log('Error getting data: ', result, response);
-			throw result;
 		}
 		const txt = await response.text();
 		return txt;
