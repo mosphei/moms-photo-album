@@ -99,7 +99,7 @@
 	<input
 		type="file"
 		bind:this={input}
-		accept="image/*,video/*"
+		
 		multiple
 		style="display:none"
 		onchange={handleOnChange}
